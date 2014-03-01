@@ -19,6 +19,11 @@ type StompOptions struct {
 	ssl      bool
 }
 
+type Message struct {
+	Type string `json:"type"`
+	Data string `json:"data"`
+}
+
 func main() {
 	var opts struct {
 		Verbose  bool   `short:"v" long:"verbose" description:"Show verbose debug information"`
@@ -30,7 +35,7 @@ func main() {
 		VHost    string `long:"virtual-host" description:"Virtual host to use" default:"/"`
 	}
 
-	_, err := flags.Parse(&opts)
+	args, err := flags.Parse(&opts)
 	if err != nil {
 		fmt.Println("\nUse --help to view available options")
 		return
@@ -45,10 +50,73 @@ func main() {
 		ssl:      opts.SSL,
 	}
 
-	err = listenToStomp(options, func(message map[string]interface{}) {
-		log.Println("Received:", message)
-	})
-	log.Println("Error:", err)
+	if len(args) == 0 {
+		fmt.Println("Nothing to do, exiting...")
+	} else {
+		if args[0] == "listen" {
+			err = listenToStomp(options, func(message map[string]interface{}) {
+				log.Println("Received:", message)
+			})
+
+			if err != nil {
+				log.Println("Error:", err)
+			}
+		} else if args[0] == "send" {
+			for i := 0; i < 5; i++ {
+				data := fmt.Sprintf("data%d", i)
+				log.Println("Sending data:", data)
+				err = sendToStomp(options, Message{Type: "urgent", Data: data})
+
+				if err != nil {
+					log.Println("Error:", err)
+				}
+			}
+		}
+	}
+}
+
+func sendToStomp(options StompOptions, message interface{}) error {
+
+	var conn *stomp.Conn
+	var err error
+	var stompOptions = stomp.Options{
+		Login:    options.login,
+		Passcode: options.password,
+		Host:     options.host,
+	}
+
+	if options.ssl {
+		socket, err := tls.Dial("tcp", options.address, &tls.Config{
+			InsecureSkipVerify: true,
+			CipherSuites:       []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
+		})
+
+		if err != nil {
+			return err
+		}
+
+		conn, err = stomp.Connect(socket, stompOptions)
+	} else {
+		conn, err = stomp.Dial("tcp", options.address, stompOptions)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	json, err := json.Marshal(message)
+
+	if err != nil {
+		return err
+	}
+
+	err = conn.SendWithReceipt(options.channel, "application/json", json, nil)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func listenToStomp(options StompOptions, callback func(message map[string]interface{})) error {
