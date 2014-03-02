@@ -77,41 +77,17 @@ func main() {
 
 func sendToStomp(options StompOptions, message interface{}) error {
 
-	var conn *stomp.Conn
-	var err error
-	var stompOptions = stomp.Options{
-		Login:    options.login,
-		Passcode: options.password,
-		Host:     options.host,
-	}
-
-	if options.ssl {
-		socket, err := tls.Dial("tcp", options.address, &tls.Config{
-			InsecureSkipVerify: true,
-			CipherSuites:       []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
-		})
-
-		if err != nil {
-			return err
-		}
-
-		conn, err = stomp.Connect(socket, stompOptions)
-	} else {
-		conn, err = stomp.Dial("tcp", options.address, stompOptions)
-	}
-
+	conn, err := connectToStomp(options)
 	if err != nil {
 		return err
 	}
 
 	json, err := json.Marshal(message)
-
 	if err != nil {
 		return err
 	}
 
 	err = conn.SendWithReceipt(options.channel, "application/json", json, nil)
-
 	if err != nil {
 		return err
 	}
@@ -119,10 +95,10 @@ func sendToStomp(options StompOptions, message interface{}) error {
 	return nil
 }
 
-func listenToStomp(options StompOptions, callback func(message map[string]interface{})) error {
-
+func connectToStomp(options StompOptions) (*stomp.Conn, error) {
 	var conn *stomp.Conn
 	var err error
+
 	var stompOptions = stomp.Options{
 		Login:    options.login,
 		Passcode: options.password,
@@ -130,13 +106,14 @@ func listenToStomp(options StompOptions, callback func(message map[string]interf
 	}
 
 	if options.ssl {
-		socket, err := tls.Dial("tcp", options.address, &tls.Config{
+		var socket *tls.Conn
+
+		socket, err = tls.Dial("tcp", options.address, &tls.Config{
 			InsecureSkipVerify: true,
 			CipherSuites:       []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
 		})
-
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		conn, err = stomp.Connect(socket, stompOptions)
@@ -144,36 +121,45 @@ func listenToStomp(options StompOptions, callback func(message map[string]interf
 		conn, err = stomp.Dial("tcp", options.address, stompOptions)
 	}
 
-	if err != nil {
-		return err
-	}
+	return conn, nil
+}
 
-	sub, err := conn.Subscribe(options.channel, stomp.AckAuto)
-	if err != nil {
-		return err
-	}
+func listenToStomp(options StompOptions, callback func(message map[string]interface{})) error {
 
 	for {
-		msg := <-sub.C
-		if msg.Err != nil {
-			return msg.Err
-		}
-
-		var rawData interface{}
-		err := json.Unmarshal(msg.Body, &rawData)
+		conn, err := connectToStomp(options)
 		if err != nil {
 			return err
 		}
 
-		data := rawData.(map[string]interface{})
-		callback(data)
+		sub, err := conn.Subscribe(options.channel, stomp.AckAuto)
+		if err != nil {
+			return err
+		}
 
+		for {
+			msg := <-sub.C
+			if msg.Err != nil {
+
+				// rabbitmq seems to kill the connection every three minutes,
+				// so if the error matches, just connect again
+				if msg.Err.Error() == "connection closed" {
+					log.Println("connection closed error received, trying again")
+					break
+				} else {
+					return msg.Err
+				}
+			}
+
+			var rawData interface{}
+			err := json.Unmarshal(msg.Body, &rawData)
+			if err != nil {
+				return err
+			}
+
+			data := rawData.(map[string]interface{})
+			callback(data)
+
+		}
 	}
-
-	err = sub.Unsubscribe()
-	if err != nil {
-		return err
-	}
-
-	return conn.Disconnect()
 }
