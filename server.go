@@ -27,7 +27,9 @@ func runServer(conn Connection) error {
 		message := <-conn.In
 
 		fmt.Println("Message received: ", message.Contents)
-		time.Sleep(100 * time.Millisecond)
+
+		// wait a small amount of time so that the return message isn't lost
+		time.Sleep(5 * time.Millisecond)
 
 		// send it back
 		conn.Out <- message
