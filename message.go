@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/jjeffery/stomp"
+	"github.com/streadway/amqp"
 
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 )
@@ -17,131 +16,124 @@ type Connection struct {
 	In  chan Message
 }
 
-type StompOptions struct {
-	address  string
-	channel  string
-	login    string
-	password string
-	host     string
-	ssl      bool
-}
-
 func connect(opts GlobalOptions, id string) Connection {
 
-	options := StompOptions{
-		address:  opts.Address,
-		login:    opts.Login,
-		password: opts.Password,
-		channel:  fmt.Sprintf("/topic/%s", opts.Topic),
-		host:     opts.VHost,
-		ssl:      opts.SSL,
-	}
-
 	in := make(chan Message, 10)
-	out := make(chan Message)
+	out := make(chan Message, 10)
 
-	go listenToStomp(options, in, id)
-	go sendToStomp(options, out, id)
+	done := make(chan bool)
+
+	go listenToAMQP(opts.URI, "testtopic", in, done, id)
+	go sendToAMQP(opts.URI, "testtopic", out, done, id)
+
+	<-done
+	<-done
 
 	return Connection{In: in, Out: out}
 }
 
-func sendToStomp(options StompOptions, sender chan Message, id string) error {
+func sendToAMQP(uri string, topic string, sender chan Message, done chan bool, id string) error {
 
-	conn, err := connectToStomp(options)
+	ch, err := connectToAMQP(uri)
 	if err != nil {
 		return err
 	}
+
+	err = ch.ExchangeDeclare(topic, "topic", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+
+	done <- true
 
 	for {
 		message := <-sender
 
 		// tag message with sender id
 		message.Contents["id"] = id
+		fmt.Println("Sending message: ", message.Contents)
 
 		json, err := json.Marshal(message.Contents)
 		if err != nil {
 			return err
 		}
 
-		err = conn.SendWithReceipt(options.channel, "application/json", json, nil)
+		err = ch.Publish(
+			topic,  // exchange
+			"test", // routing key
+			false,  // mandatory
+			false,  // immediate
+			amqp.Publishing{
+				ContentType: "application/json",
+				Body:        json,
+			})
+
 		if err != nil {
 			return err
 		}
 	}
-
-	return nil
 }
 
-func connectToStomp(options StompOptions) (*stomp.Conn, error) {
-	var conn *stomp.Conn
-	var err error
+func connectToAMQP(uri string) (*amqp.Channel, error) {
 
-	var stompOptions = stomp.Options{
-		Login:    options.login,
-		Passcode: options.password,
-		Host:     options.host,
+	conn, err := amqp.Dial(uri)
+	if err != nil {
+		return nil, err
 	}
 
-	if options.ssl {
-		var socket *tls.Conn
-
-		socket, err = tls.Dial("tcp", options.address, &tls.Config{
-			InsecureSkipVerify: true,
-			CipherSuites:       []uint16{tls.TLS_RSA_WITH_AES_256_CBC_SHA},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		conn, err = stomp.Connect(socket, stompOptions)
-	} else {
-		conn, err = stomp.Dial("tcp", options.address, stompOptions)
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
 	}
 
-	return conn, nil
+	fmt.Println("Channel: ", ch)
+	return ch, nil
 }
 
-func listenToStomp(options StompOptions, receiver chan Message, id string) error {
+func listenToAMQP(uri string, topic string, receiver chan Message, done chan bool, id string) error {
+
+	ch, err := connectToAMQP(uri)
+	if err != nil {
+		return err
+	}
+
+	err = ch.ExchangeDeclare(topic, "topic", true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+
+	q, err := ch.QueueDeclare("", false, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(q.Name, "#", topic, false, nil)
+	if err != nil {
+		return err
+	}
+
+	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
+	done <- true
 
 	for {
-		conn, err := connectToStomp(options)
+		delivery := <-msgs
+
+		var rawData interface{}
+		err := json.Unmarshal(delivery.Body, &rawData)
 		if err != nil {
 			return err
 		}
 
-		sub, err := conn.Subscribe(options.channel, stomp.AckAuto)
-		if err != nil {
-			return err
-		}
+		data := rawData.(map[string]interface{})
 
-		for {
-			msg := <-sub.C
-			if msg.Err != nil {
+		senderId := data["id"].(string)
 
-				// rabbitmq seems to kill the connection every three minutes,
-				// so if the error matches, just connect again
-				if msg.Err.Error() == "connection closed" {
-					break
-				} else {
-					return msg.Err
-				}
-			}
-
-			var rawData interface{}
-			err := json.Unmarshal(msg.Body, &rawData)
-			if err != nil {
-				return err
-			}
-
-			data := rawData.(map[string]interface{})
-
-			senderId := data["id"].(string)
-
-			// hide messages from ourselves
-			if senderId != id {
-				receiver <- Message{Contents: data}
-			}
+		// hide messages from ourselves
+		if senderId != id {
+			receiver <- Message{Contents: data}
+		} else {
+			fmt.Println("Message received but ignored: ", data)
 		}
 	}
+
 }
