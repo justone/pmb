@@ -102,7 +102,7 @@ func listenToAMQP(uri string, topic string, receiver chan Message, done chan boo
 		return err
 	}
 
-	q, err := ch.QueueDeclare("", false, false, false, false, nil)
+	q, err := ch.QueueDeclare("", false, true, false, false, nil)
 	if err != nil {
 		return err
 	}
