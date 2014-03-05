@@ -5,6 +5,9 @@ import (
 
 	"encoding/json"
 	"fmt"
+	"net"
+	"os"
+	"time"
 )
 
 type Message struct {
@@ -51,6 +54,14 @@ func sendToAMQP(uri string, topic string, sender chan Message, done chan bool, i
 
 		// tag message with sender id
 		message.Contents["id"] = id
+
+		// add a few other pieces of information
+		hostname, ip, err := localNetInfo()
+
+		message.Contents["hostname"] = hostname
+		message.Contents["ip"] = ip
+		message.Contents["sent"] = time.Now().Format(time.RFC3339)
+
 		fmt.Println("Sending message: ", message.Contents)
 
 		json, err := json.Marshal(message.Contents)
@@ -72,6 +83,21 @@ func sendToAMQP(uri string, topic string, sender chan Message, done chan bool, i
 			return err
 		}
 	}
+}
+
+func localNetInfo() (string, string, error) {
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", "", err
+	}
+
+	addrs, err := net.LookupHost(hostname)
+	if err != nil {
+		return hostname, "", err
+	}
+
+	return hostname, addrs[0], nil
 }
 
 func connectToAMQP(uri string) (*amqp.Channel, error) {
