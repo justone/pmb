@@ -3,10 +3,12 @@ package main
 import (
 	"github.com/streadway/amqp"
 
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -102,7 +104,21 @@ func localNetInfo() (string, string, error) {
 
 func connectToAMQP(uri string) (*amqp.Channel, error) {
 
-	conn, err := amqp.Dial(uri)
+	var conn *amqp.Connection
+	var err error
+
+	if strings.Contains(uri, "amqps") {
+		cfg := new(tls.Config)
+
+		if len(os.Getenv("PMB_SSL_INSECURE_SKIP_VERIFY")) > 0 {
+			cfg.InsecureSkipVerify = true
+		}
+
+		conn, err = amqp.DialTLS(uri, cfg)
+	} else {
+		conn, err = amqp.Dial(uri)
+	}
+
 	if err != nil {
 		return nil, err
 	}
