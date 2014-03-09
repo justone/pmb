@@ -21,15 +21,15 @@ type Connection struct {
 	In  chan Message
 }
 
-func connect(URI string, id string) *Connection {
+func connect(URI string, prefix string, id string) *Connection {
 
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)
 
 	done := make(chan bool)
 
-	go listenToAMQP(URI, "testtopic", in, done, id)
-	go sendToAMQP(URI, "testtopic", out, done, id)
+	go listenToAMQP(URI, prefix, "pmb", in, done, id)
+	go sendToAMQP(URI, prefix, "pmb", out, done, id)
 
 	<-done
 	<-done
@@ -37,14 +37,14 @@ func connect(URI string, id string) *Connection {
 	return &Connection{In: in, Out: out}
 }
 
-func sendToAMQP(uri string, topic string, sender chan Message, done chan bool, id string) error {
+func sendToAMQP(uri string, prefix string, topic string, sender chan Message, done chan bool, id string) error {
 
 	ch, err := connectToAMQP(uri)
 	if err != nil {
 		return err
 	}
 
-	err = ch.ExchangeDeclare(topic, "topic", true, false, false, false, nil)
+	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topic), "topic", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func sendToAMQP(uri string, topic string, sender chan Message, done chan bool, i
 		}
 
 		err = ch.Publish(
-			topic,  // exchange
+			fmt.Sprintf("%s-%s", prefix, topic), // exchange
 			"test", // routing key
 			false,  // mandatory
 			false,  // immediate
@@ -132,25 +132,36 @@ func connectToAMQP(uri string) (*amqp.Channel, error) {
 	return ch, nil
 }
 
-func listenToAMQP(uri string, topic string, receiver chan Message, done chan bool, id string) error {
+func listenToAMQP(uri string, prefix string, topic string, receiver chan Message, done chan bool, id string) error {
 
 	ch, err := connectToAMQP(uri)
 	if err != nil {
 		return err
 	}
 
-	err = ch.ExchangeDeclare(topic, "topic", true, false, false, false, nil)
+	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topic), "topic", true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 
-	q, err := ch.QueueDeclare("", false, true, false, false, nil)
+	q, err := ch.QueueDeclarePassive(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
 	if err != nil {
+		ch, err = connectToAMQP(uri)
+		if err != nil {
+			return err
+		}
+		q, err = ch.QueueDeclare(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = fmt.Errorf("Another connection with the same id (%s) already exists.", id)
 		return err
 	}
 
-	err = ch.QueueBind(q.Name, "#", topic, false, nil)
+	err = ch.QueueBind(q.Name, "#", fmt.Sprintf("%s-%s", prefix, topic), false, nil)
 	if err != nil {
+		// fmt.Println(err)
 		return err
 	}
 

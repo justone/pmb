@@ -21,7 +21,9 @@ func GetPMB() *PMB {
 func getConfig() PMBConfig {
 	config := make(PMBConfig)
 
+	// TODO: read this from config file
 	config["home"] = os.Getenv("HOME")
+	config["prefix"] = "nate"
 	config["pmb_root"] = fmt.Sprintf("%s/.pmb", config["home"])
 
 	return config
@@ -37,7 +39,7 @@ func (pmb *PMB) GetConnection(cliURI string, id string) (*Connection, error) {
 		return nil, errors.New("No URI found, use '-u' to specify one")
 	}
 
-	return connect(cliURI, id), nil
+	return connect(cliURI, pmb.config["prefix"], id), nil
 }
 
 func (pmb *PMB) SaveAuth(connectURI string) error {
