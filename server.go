@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/justone/pmb/api"
+
 	"fmt"
 )
 
@@ -11,7 +13,14 @@ type ServerCommand struct {
 var serverCommand ServerCommand
 
 func (x *ServerCommand) Execute(args []string) error {
-	return runServer(connect(globalOptions, "server"))
+	bus := pmb.GetPMB()
+
+	conn, err := bus.GetConnection(globalOptions.URI, "server")
+	if err != nil {
+		return err
+	} else {
+		return runServer(conn)
+	}
 }
 
 func init() {
@@ -21,7 +30,7 @@ func init() {
 		&serverCommand)
 }
 
-func runServer(conn Connection) error {
+func runServer(conn *pmb.Connection) error {
 	for {
 		message := <-conn.In
 

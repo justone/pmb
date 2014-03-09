@@ -1,4 +1,4 @@
-package main
+package pmb
 
 import (
 	"github.com/streadway/amqp"
@@ -21,20 +21,20 @@ type Connection struct {
 	In  chan Message
 }
 
-func connect(opts GlobalOptions, id string) Connection {
+func connect(URI string, id string) *Connection {
 
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)
 
 	done := make(chan bool)
 
-	go listenToAMQP(opts.URI, "testtopic", in, done, id)
-	go sendToAMQP(opts.URI, "testtopic", out, done, id)
+	go listenToAMQP(URI, "testtopic", in, done, id)
+	go sendToAMQP(URI, "testtopic", out, done, id)
 
 	<-done
 	<-done
 
-	return Connection{In: in, Out: out}
+	return &Connection{In: in, Out: out}
 }
 
 func sendToAMQP(uri string, topic string, sender chan Message, done chan bool, id string) error {
