@@ -39,7 +39,7 @@ func (pmb *PMB) GetConnection(cliURI string, id string) (*Connection, error) {
 		return nil, errors.New("No URI found, use '-u' to specify one")
 	}
 
-	return connect(cliURI, pmb.config["prefix"], id), nil
+	return connect(cliURI, pmb.config["prefix"], id)
 }
 
 func (pmb *PMB) SaveAuth(connectURI string) error {

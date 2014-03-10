@@ -21,40 +21,47 @@ type Connection struct {
 	In  chan Message
 }
 
-func connect(URI string, prefix string, id string) *Connection {
+func connect(URI string, prefix string, id string) (*Connection, error) {
 
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)
 
-	done := make(chan bool)
+	done := make(chan error)
 
 	go listenToAMQP(URI, prefix, "pmb", in, done, id)
 	go sendToAMQP(URI, prefix, "pmb", out, done, id)
 
-	<-done
-	<-done
+	for i := 1; i <= 2; i++ {
+		err := <-done
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return &Connection{In: in, Out: out}
+	return &Connection{In: in, Out: out}, nil
 }
 
-func sendToAMQP(uri string, prefix string, topic string, sender chan Message, done chan bool, id string) error {
+func sendToAMQP(uri string, prefix string, topic string, sender chan Message, done chan error, id string) {
 
 	conn, err := connectToAMQP(uri)
 	if err != nil {
-		return err
+		done <- err
+		return
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return err
+		done <- err
+		return
 	}
 
 	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topic), "topic", true, false, false, false, nil)
 	if err != nil {
-		return err
+		done <- err
+		return
 	}
 
-	done <- true
+	done <- nil
 
 	for {
 		message := <-sender
@@ -73,7 +80,8 @@ func sendToAMQP(uri string, prefix string, topic string, sender chan Message, do
 
 		json, err := json.Marshal(message.Contents)
 		if err != nil {
-			return err
+			// TODO: handle this error better
+			return
 		}
 
 		err = ch.Publish(
@@ -87,7 +95,8 @@ func sendToAMQP(uri string, prefix string, topic string, sender chan Message, do
 			})
 
 		if err != nil {
-			return err
+			// TODO: connection probably needs to be re-initialized
+			return
 		}
 	}
 }
@@ -132,54 +141,64 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 	return conn, nil
 }
 
-func listenToAMQP(uri string, prefix string, topic string, receiver chan Message, done chan bool, id string) error {
+func listenToAMQP(uri string, prefix string, topic string, receiver chan Message, done chan error, id string) {
 
 	conn, err := connectToAMQP(uri)
 	if err != nil {
-		return err
+		done <- err
+		return
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return err
+		done <- err
+		return
 	}
 
 	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topic), "topic", true, false, false, false, nil)
 	if err != nil {
-		return err
+		done <- err
+		return
 	}
 
 	q, err := ch.QueueDeclarePassive(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
 	if err != nil {
 		ch, err = conn.Channel()
 		if err != nil {
-			return err
+			done <- err
+			return
 		}
 		q, err = ch.QueueDeclare(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
 		if err != nil {
-			return err
+			done <- err
+			return
 		}
 	} else {
 		err = fmt.Errorf("Another connection with the same id (%s) already exists.", id)
-		return err
+		done <- err
+		return
 	}
 
 	err = ch.QueueBind(q.Name, "#", fmt.Sprintf("%s-%s", prefix, topic), false, nil)
 	if err != nil {
-		// fmt.Println(err)
-		return err
+		done <- err
+		return
 	}
 
 	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
-	done <- true
+	done <- nil
 
 	for {
-		delivery := <-msgs
+		delivery, ok := <-msgs
+		if !ok {
+			// TODO: connection or channel closed, re-initialize
+		}
 
 		var rawData interface{}
 		err := json.Unmarshal(delivery.Body, &rawData)
 		if err != nil {
-			return err
+			// TODO: handle this error better
+			return
 		}
 
 		data := rawData.(map[string]interface{})
