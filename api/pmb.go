@@ -25,21 +25,30 @@ func getConfig() PMBConfig {
 	config["home"] = os.Getenv("HOME")
 	config["prefix"] = "nate"
 	config["pmb_root"] = fmt.Sprintf("%s/.pmb", config["home"])
+	config["introducer"] = ""
 
 	return config
 }
 
-func (pmb *PMB) GetConnection(cliURI string, id string) (*Connection, error) {
+func (pmb *PMB) GetConnection(uris map[string]string, id string) (*Connection, error) {
 
-	// TODO: use URI from cli
-	// TODO: use saved URI
-	// TODO: use a server to get URI
-
-	if len(cliURI) == 0 {
-		return nil, errors.New("No URI found, use '-u' to specify one")
+	if len(uris["primary"]) > 0 {
+		return connectWithPrimary(uris["primary"], pmb.config["prefix"], id)
+	} else if uri := pmb.loadCachedPrimaryURI(); len(uri) > 0 {
+		return connectWithPrimary(uri, pmb.config["prefix"], id)
+	} else if len(uris["introducer"]) > 0 {
+		return connectWithIntroducer(uris["introducer"], pmb.config["prefix"], id)
+	} else if len(pmb.config["introducer"]) > 0 {
+		return connectWithIntroducer(pmb.config["introducer"], pmb.config["prefix"], id)
 	}
 
-	return connect(cliURI, pmb.config["prefix"], id)
+	return nil, errors.New("No URI found, use '-u' to specify one")
+}
+
+func (pmb *PMB) loadCachedPrimaryURI() string {
+
+	// TODO: implement
+	return ""
 }
 
 func (pmb *PMB) SaveAuth(connectURI string) error {

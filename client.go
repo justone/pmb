@@ -15,7 +15,7 @@ var clientCommand ClientCommand
 func (x *ClientCommand) Execute(args []string) error {
 	bus := pmb.GetPMB()
 
-	conn, err := bus.GetConnection(globalOptions.URI, "client")
+	conn, err := bus.GetConnection(urisFromOpts(globalOptions), "client")
 	if err != nil {
 		return err
 	} else {

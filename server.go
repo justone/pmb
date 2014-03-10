@@ -15,7 +15,7 @@ var serverCommand ServerCommand
 func (x *ServerCommand) Execute(args []string) error {
 	bus := pmb.GetPMB()
 
-	conn, err := bus.GetConnection(globalOptions.URI, "server")
+	conn, err := bus.GetConnection(urisFromOpts(globalOptions), "server")
 	if err != nil {
 		return err
 	} else {

@@ -7,8 +7,9 @@ import (
 )
 
 type GlobalOptions struct {
-	Verbose bool   `short:"v" long:"verbose" description:"Show verbose debug information."`
-	URI     string `short:"u" long:"uri" description:"URI to connect to."`
+	Verbose    bool   `short:"v" long:"verbose" description:"Show verbose debug information."`
+	Primary    string `short:"p" long:"primary" description:"Primary URI."`
+	Introducer string `short:"i" long:"introducer" description:"Introducer URI."`
 }
 
 var globalOptions GlobalOptions

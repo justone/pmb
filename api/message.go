@@ -21,7 +21,11 @@ type Connection struct {
 	In  chan Message
 }
 
-func connect(URI string, prefix string, id string) (*Connection, error) {
+func connectWithIntroducer(URI string, prefix string, id string) (*Connection, error) {
+	return nil, fmt.Errorf("Not implemented yet")
+}
+
+func connectWithPrimary(URI string, prefix string, id string) (*Connection, error) {
 
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)
