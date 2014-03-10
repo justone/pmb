@@ -39,7 +39,12 @@ func connect(URI string, prefix string, id string) *Connection {
 
 func sendToAMQP(uri string, prefix string, topic string, sender chan Message, done chan bool, id string) error {
 
-	ch, err := connectToAMQP(uri)
+	conn, err := connectToAMQP(uri)
+	if err != nil {
+		return err
+	}
+
+	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
@@ -102,7 +107,7 @@ func localNetInfo() (string, string, error) {
 	return hostname, addrs[0], nil
 }
 
-func connectToAMQP(uri string) (*amqp.Channel, error) {
+func connectToAMQP(uri string) (*amqp.Connection, error) {
 
 	var conn *amqp.Connection
 	var err error
@@ -123,18 +128,18 @@ func connectToAMQP(uri string) (*amqp.Channel, error) {
 		return nil, err
 	}
 
-	ch, err := conn.Channel()
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("Channel: ", ch)
-	return ch, nil
+	//fmt.Println("Conn: ", conn)
+	return conn, nil
 }
 
 func listenToAMQP(uri string, prefix string, topic string, receiver chan Message, done chan bool, id string) error {
 
-	ch, err := connectToAMQP(uri)
+	conn, err := connectToAMQP(uri)
+	if err != nil {
+		return err
+	}
+
+	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
@@ -146,7 +151,7 @@ func listenToAMQP(uri string, prefix string, topic string, receiver chan Message
 
 	q, err := ch.QueueDeclarePassive(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
 	if err != nil {
-		ch, err = connectToAMQP(uri)
+		ch, err = conn.Channel()
 		if err != nil {
 			return err
 		}
