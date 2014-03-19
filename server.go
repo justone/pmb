@@ -18,9 +18,14 @@ func (x *ServerCommand) Execute(args []string) error {
 	conn, err := bus.GetConnection(urisFromOpts(globalOptions), "server")
 	if err != nil {
 		return err
-	} else {
-		return runServer(conn)
 	}
+
+	introConn, err := bus.GetIntroConnection(urisFromOpts(globalOptions), "server")
+	if err != nil {
+		return err
+	}
+
+	return runServer(conn, introConn)
 }
 
 func init() {
@@ -30,14 +35,23 @@ func init() {
 		&serverCommand)
 }
 
-func runServer(conn *pmb.Connection) error {
+func runServer(conn *pmb.Connection, introConn *pmb.Connection) error {
+	fmt.Println(globalOptions)
 	for {
-		message := <-conn.In
+		select {
+		case message := <-conn.In:
+			if message.Contents["type"].(string) == "CopyData" {
+				copyToClipboard(message.Contents["data"].(string))
+			}
 
-		fmt.Println("Message received: ", message.Contents)
+		case message := <-introConn.In:
+			if message.Contents["type"].(string) == "RequestAuth" {
+				// copy primary uri to clipboard
+				copyToClipboard(globalOptions.Primary)
+			}
 
-		// send it back
-		conn.Out <- message
+			// any other message type is an error and ignored
+		}
 	}
 
 	return nil

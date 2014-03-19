@@ -18,9 +18,9 @@ func (x *ClientCommand) Execute(args []string) error {
 	conn, err := bus.GetConnection(urisFromOpts(globalOptions), "client")
 	if err != nil {
 		return err
-	} else {
-		return runClient(conn)
 	}
+
+	return runClient(conn)
 }
 
 func init() {
@@ -33,7 +33,10 @@ func init() {
 func runClient(conn *pmb.Connection) error {
 	data := make(map[string]interface{})
 
-	data["type"] = "Urgent"
+	data["type"] = "CopyData"
+
+	// TODO copy data from stdin or cli
+	data["data"] = "foo"
 
 	fmt.Println("Sending message: ", data)
 	conn.Out <- pmb.Message{Contents: data}

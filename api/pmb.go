@@ -1,9 +1,11 @@
 package pmb
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
+	"time"
 )
 
 type PMBConfig map[string]string
@@ -23,7 +25,6 @@ func getConfig() PMBConfig {
 
 	// TODO: read this from config file
 	config["home"] = os.Getenv("HOME")
-	config["prefix"] = "nate"
 	config["pmb_root"] = fmt.Sprintf("%s/.pmb", config["home"])
 	config["introducer"] = ""
 
@@ -33,16 +34,50 @@ func getConfig() PMBConfig {
 func (pmb *PMB) GetConnection(uris map[string]string, id string) (*Connection, error) {
 
 	if len(uris["primary"]) > 0 {
-		return connectWithPrimary(uris["primary"], pmb.config["prefix"], id)
+		return connect(uris["primary"], id)
 	} else if uri := pmb.loadCachedPrimaryURI(); len(uri) > 0 {
-		return connectWithPrimary(uri, pmb.config["prefix"], id)
+		return connect(uri, id)
 	} else if len(uris["introducer"]) > 0 {
-		return connectWithIntroducer(uris["introducer"], pmb.config["prefix"], id)
+		return connectWithIntroducer(uris["introducer"], id)
 	} else if len(pmb.config["introducer"]) > 0 {
-		return connectWithIntroducer(pmb.config["introducer"], pmb.config["prefix"], id)
+		return connectWithIntroducer(pmb.config["introducer"], id)
 	}
 
 	return nil, errors.New("No URI found, use '-u' to specify one")
+}
+
+func (pmb *PMB) GetIntroConnection(uris map[string]string, id string) (*Connection, error) {
+
+	if len(uris["introducer"]) > 0 {
+		return connect(uris["introducer"], id)
+	} else if len(pmb.config["introducer"]) > 0 {
+		return connect(pmb.config["introducer"], id)
+	}
+
+	return nil, errors.New("No URI found, use '-i' to specify one")
+}
+
+func connectWithIntroducer(URI string, id string) (*Connection, error) {
+	introConn, err := connect(URI, id)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make(map[string]interface{})
+	data["type"] = "RequestAuth"
+
+	introConn.Out <- Message{Contents: data}
+
+	time.Sleep(200 * time.Millisecond)
+	fmt.Printf("Enter secret: ")
+
+	bio := bufio.NewReader(os.Stdin)
+	primaryURI, _, err := bio.ReadLine()
+	if err != nil {
+		return nil, err
+	}
+
+	return connect(string(primaryURI), id)
 }
 
 func (pmb *PMB) loadCachedPrimaryURI() string {

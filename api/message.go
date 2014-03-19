@@ -21,11 +21,15 @@ type Connection struct {
 	In  chan Message
 }
 
-func connectWithIntroducer(URI string, prefix string, id string) (*Connection, error) {
-	return nil, fmt.Errorf("Not implemented yet")
-}
+func connect(URI string, id string) (*Connection, error) {
 
-func connectWithPrimary(URI string, prefix string, id string) (*Connection, error) {
+	uriParts, err := amqp.ParseURI(URI)
+	if err != nil {
+		return nil, err
+	}
+
+	// all resources are prefixed with username
+	prefix := uriParts.Username
 
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)
