@@ -63,9 +63,9 @@ func connectWithIntroducer(URI string, id string) (*Connection, error) {
 		return nil, err
 	}
 
-	data := make(map[string]interface{})
-	data["type"] = "RequestAuth"
-
+	data := map[string]interface{}{
+		"type": "RequestAuth",
+	}
 	introConn.Out <- Message{Contents: data}
 
 	time.Sleep(200 * time.Millisecond)

@@ -32,13 +32,11 @@ func init() {
 }
 
 func runClient(conn *pmb.Connection) error {
-	data := make(map[string]interface{})
-
-	data["type"] = "CopyData"
-
 	// TODO copy data from stdin or cli
-	data["data"] = "foo"
-
+	data := map[string]interface{}{
+		"type": "CopyData",
+		"data": "foo",
+	}
 	conn.Out <- pmb.Message{Contents: data}
 
 	timeout := time.After(1 * time.Second)

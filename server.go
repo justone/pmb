@@ -43,10 +43,9 @@ func runServer(conn *pmb.Connection, introConn *pmb.Connection) error {
 			if message.Contents["type"].(string) == "CopyData" {
 				copyToClipboard(message.Contents["data"].(string))
 
-				data := make(map[string]interface{})
-
-				data["type"] = "DataCopied"
-
+				data := map[string]interface{}{
+					"type": "DataCopied",
+				}
 				conn.Out <- pmb.Message{Contents: data}
 			}
 
