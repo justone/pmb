@@ -215,6 +215,7 @@ func listenToAMQP(uri string, prefix string, topic string, receiver chan Message
 
 		// hide messages from ourselves
 		if senderId != id {
+			fmt.Println("Message received: ", data)
 			receiver <- Message{Contents: data}
 		} else {
 			fmt.Println("Message received but ignored: ", data)

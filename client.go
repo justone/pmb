@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/justone/pmb/api"
-
 	"fmt"
+	"time"
+
+	"github.com/justone/pmb/api"
 )
 
 type ClientCommand struct {
@@ -38,11 +39,19 @@ func runClient(conn *pmb.Connection) error {
 	// TODO copy data from stdin or cli
 	data["data"] = "foo"
 
-	fmt.Println("Sending message: ", data)
 	conn.Out <- pmb.Message{Contents: data}
 
-	message := <-conn.In
-	fmt.Println("Message received: ", message.Contents)
+	timeout := time.After(1 * time.Second)
+	for {
+		select {
+		case message := <-conn.In:
+			if message.Contents["type"].(string) == "DataCopied" {
+				return nil
+			}
+		case _ = <-timeout:
+			fmt.Println("Unable to determine if data was copied...")
+		}
+	}
 
 	return nil
 }

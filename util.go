@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -17,6 +18,9 @@ func urisFromOpts(opts GlobalOptions) map[string]string {
 func copyToClipboard(data string) error {
 
 	// TODO support more than OSX
+
+	fmt.Printf("copy data: %s\n", data)
+
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = strings.NewReader(data)
 
