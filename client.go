@@ -16,12 +16,14 @@ var clientCommand ClientCommand
 func (x *ClientCommand) Execute(args []string) error {
 	bus := pmb.GetPMB()
 
-	conn, err := bus.GetConnection(urisFromOpts(globalOptions), "client")
+	id := generateRandomID("client")
+
+	conn, err := bus.GetConnection(urisFromOpts(globalOptions), id)
 	if err != nil {
 		return err
 	}
 
-	return runClient(conn)
+	return runClient(conn, id)
 }
 
 func init() {
@@ -31,7 +33,7 @@ func init() {
 		&clientCommand)
 }
 
-func runClient(conn *pmb.Connection) error {
+func runClient(conn *pmb.Connection, id string) error {
 	// TODO copy data from stdin or cli
 	data := map[string]interface{}{
 		"type": "CopyData",
@@ -43,7 +45,8 @@ func runClient(conn *pmb.Connection) error {
 	for {
 		select {
 		case message := <-conn.In:
-			if message.Contents["type"].(string) == "DataCopied" {
+			data := message.Contents
+			if data["type"].(string) == "DataCopied" && data["origin"].(string) == id {
 				return nil
 			}
 		case _ = <-timeout:

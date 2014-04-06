@@ -30,3 +30,8 @@ func copyToClipboard(data string) error {
 	}
 	return nil
 }
+
+func generateRandomID(prefix string) string {
+	// TODO generate a better random id
+	return fmt.Sprintf("%s-%s", prefix, "random")
+}
