@@ -15,31 +15,34 @@ type PMB struct {
 	config PMBConfig
 }
 
-func GetPMB() *PMB {
-	config := getConfig()
+func GetPMB(uris map[string]string) *PMB {
+	config := getConfig(uris)
 
 	return &PMB{config: config}
 }
 
-func getConfig() PMBConfig {
+func getConfig(uris map[string]string) PMBConfig {
 	config := make(PMBConfig)
 
-	// TODO: read this from config file
-	config["home"] = os.Getenv("HOME")
-	config["pmb_root"] = fmt.Sprintf("%s/.pmb", config["home"])
-	config["introducer"] = ""
+	if len(uris["primary"]) > 0 {
+		config["primary"] = uris["primary"]
+	} else if primaryURI := os.Getenv("PMB_PRIMARY_URI"); len(primaryURI) > 0 {
+		config["primary"] = primaryURI
+	}
+
+	if len(uris["introducer"]) > 0 {
+		config["introducer"] = uris["introducer"]
+	} else if introducerURI := os.Getenv("PMB_INTRODUCER_URI"); len(introducerURI) > 0 {
+		config["introducer"] = introducerURI
+	}
 
 	return config
 }
 
-func (pmb *PMB) GetConnection(uris map[string]string, id string) (*Connection, error) {
+func (pmb *PMB) GetConnection(id string) (*Connection, error) {
 
-	if len(uris["primary"]) > 0 {
-		return connect(uris["primary"], id)
-	} else if uri := pmb.loadCachedPrimaryURI(); len(uri) > 0 {
-		return connect(uri, id)
-	} else if len(uris["introducer"]) > 0 {
-		return connectWithIntroducer(uris["introducer"], id)
+	if len(pmb.config["primary"]) > 0 {
+		return connect(pmb.config["primary"], id)
 	} else if len(pmb.config["introducer"]) > 0 {
 		return connectWithIntroducer(pmb.config["introducer"], id)
 	}
@@ -47,11 +50,9 @@ func (pmb *PMB) GetConnection(uris map[string]string, id string) (*Connection, e
 	return nil, errors.New("No URI found, use '-u' to specify one")
 }
 
-func (pmb *PMB) GetIntroConnection(uris map[string]string, id string) (*Connection, error) {
+func (pmb *PMB) GetIntroConnection(id string) (*Connection, error) {
 
-	if len(uris["introducer"]) > 0 {
-		return connect(uris["introducer"], id)
-	} else if len(pmb.config["introducer"]) > 0 {
+	if len(pmb.config["introducer"]) > 0 {
 		return connect(pmb.config["introducer"], id)
 	}
 
@@ -86,15 +87,6 @@ func connectWithIntroducer(URI string, id string) (*Connection, error) {
 	return connect(strings.TrimSpace(primaryURI), id)
 }
 
-func (pmb *PMB) loadCachedPrimaryURI() string {
-
-	// TODO: implement
-	return ""
-}
-
-func (pmb *PMB) SaveAuth(connectURI string) error {
-
-	fmt.Println("Saving auth")
-
-	return nil
+func (pmb *PMB) PrimaryURI() string {
+	return pmb.config["primary"]
 }

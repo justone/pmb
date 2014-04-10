@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 )
 
 type AuthCommand struct {
@@ -15,7 +14,7 @@ type AuthCommand struct {
 var authCommand AuthCommand
 
 func (x *AuthCommand) Execute(args []string) error {
-	bus := pmb.GetPMB()
+	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
 	reader := bufio.NewReader(os.Stdin)
 
@@ -25,8 +24,6 @@ func (x *AuthCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-
-	bus.SaveAuth(strings.TrimSpace(uri))
 
 	fmt.Print("URI:", uri)
 

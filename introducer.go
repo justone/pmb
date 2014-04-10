@@ -9,19 +9,19 @@ type IntroducerCommand struct {
 var introducerCommand IntroducerCommand
 
 func (x *IntroducerCommand) Execute(args []string) error {
-	bus := pmb.GetPMB()
+	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	conn, err := bus.GetConnection(urisFromOpts(globalOptions), "introducer")
+	conn, err := bus.GetConnection("introducer")
 	if err != nil {
 		return err
 	}
 
-	introConn, err := bus.GetIntroConnection(urisFromOpts(globalOptions), "introducer")
+	introConn, err := bus.GetIntroConnection("introducer")
 	if err != nil {
 		return err
 	}
 
-	return runIntroducer(conn, introConn)
+	return runIntroducer(bus, conn, introConn)
 }
 
 func init() {
@@ -31,8 +31,7 @@ func init() {
 		&introducerCommand)
 }
 
-func runIntroducer(conn *pmb.Connection, introConn *pmb.Connection) error {
-	// fmt.Println(globalOptions)
+func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, introConn *pmb.Connection) error {
 	for {
 		select {
 		case message := <-conn.In:
@@ -49,7 +48,7 @@ func runIntroducer(conn *pmb.Connection, introConn *pmb.Connection) error {
 		case message := <-introConn.In:
 			if message.Contents["type"].(string) == "RequestAuth" {
 				// copy primary uri to clipboard
-				copyToClipboard(globalOptions.Primary)
+				copyToClipboard(bus.PrimaryURI())
 			}
 
 			// any other message type is an error and ignored

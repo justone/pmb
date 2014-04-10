@@ -17,7 +17,7 @@ type RemoteCopyCommand struct {
 var remoteCopyCommand RemoteCopyCommand
 
 func (x *RemoteCopyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB()
+	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
 	// grab all args or stdin
 	var data string
@@ -34,7 +34,7 @@ func (x *RemoteCopyCommand) Execute(args []string) error {
 
 	id := generateRandomID("remoteCopy")
 
-	conn, err := bus.GetConnection(urisFromOpts(globalOptions), id)
+	conn, err := bus.GetConnection(id)
 	if err != nil {
 		return err
 	}
