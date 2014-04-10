@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -69,15 +70,20 @@ func connectWithIntroducer(URI string, id string) (*Connection, error) {
 	introConn.Out <- Message{Contents: data}
 
 	time.Sleep(200 * time.Millisecond)
-	fmt.Printf("Enter secret: ")
 
-	bio := bufio.NewReader(os.Stdin)
-	primaryURI, _, err := bio.ReadLine()
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		fmt.Errorf("failed to open /dev/tty", err)
+	}
+
+	fmt.Printf("Enter secret: ")
+	primaryURI, err := bufio.NewReader(tty).ReadString('\n')
 	if err != nil {
 		return nil, err
 	}
+	//fmt.Println("primary uri ", primaryURI)
 
-	return connect(string(primaryURI), id)
+	return connect(strings.TrimSpace(primaryURI), id)
 }
 
 func (pmb *PMB) loadCachedPrimaryURI() string {
