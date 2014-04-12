@@ -2,9 +2,17 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os/exec"
 	"strings"
+	"time"
 )
+
+var charactersForRandom = []byte("1234567890abcdef")
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func urisFromOpts(opts GlobalOptions) map[string]string {
 
@@ -32,6 +40,9 @@ func copyToClipboard(data string) error {
 }
 
 func generateRandomID(prefix string) string {
-	// TODO generate a better random id
-	return fmt.Sprintf("%s-%s", prefix, "random")
+	random := make([]byte, 12)
+	for i, _ := range random {
+		random[i] = charactersForRandom[rand.Intn(len(charactersForRandom))]
+	}
+	return fmt.Sprintf("%s-%s", prefix, string(random))
 }
