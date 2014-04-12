@@ -66,7 +66,7 @@ func runRemoteCopy(conn *pmb.Connection, id string, data string) error {
 				return nil
 			}
 		case _ = <-timeout:
-			fmt.Println("Unable to determine if data was copied...")
+			return fmt.Errorf("Unable to determine if data was copied...")
 		}
 	}
 
