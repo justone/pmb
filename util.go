@@ -29,7 +29,13 @@ func copyToClipboard(data string) error {
 
 	fmt.Printf("copy data: %s\n", data)
 
-	cmd := exec.Command("pbcopy")
+	var cmd *exec.Cmd
+
+	if _, err := exec.LookPath("pbcopy"); err == nil {
+		cmd = exec.Command("pbcopy")
+	} else if _, err := exec.LookPath("tmux"); err == nil {
+		cmd = exec.Command("tmux", "load-buffer", "-")
+	}
 	cmd.Stdin = strings.NewReader(data)
 
 	err := cmd.Run()
