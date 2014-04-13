@@ -17,9 +17,13 @@ type Message struct {
 }
 
 type Connection struct {
-	Out chan Message
-	In  chan Message
+	Out    chan Message
+	In     chan Message
+	uri    string
+	prefix string
 }
+
+var topicSuffix = "pmb"
 
 func connect(URI string, id string) (*Connection, error) {
 
@@ -36,8 +40,10 @@ func connect(URI string, id string) (*Connection, error) {
 
 	done := make(chan error)
 
-	go listenToAMQP(URI, prefix, "pmb", in, done, id)
-	go sendToAMQP(URI, prefix, "pmb", out, done, id)
+	conn := Connection{In: in, Out: out, uri: URI, prefix: prefix}
+
+	go listenToAMQP(conn, done, id)
+	go sendToAMQP(conn, done, id)
 
 	for i := 1; i <= 2; i++ {
 		err := <-done
@@ -46,10 +52,14 @@ func connect(URI string, id string) (*Connection, error) {
 		}
 	}
 
-	return &Connection{In: in, Out: out}, nil
+	return &conn, nil
 }
 
-func sendToAMQP(uri string, prefix string, topic string, sender chan Message, done chan error, id string) {
+func sendToAMQP(pmbConn Connection, done chan error, id string) {
+
+	uri := pmbConn.uri
+	prefix := pmbConn.prefix
+	sender := pmbConn.Out
 
 	conn, err := connectToAMQP(uri)
 	if err != nil {
@@ -63,7 +73,7 @@ func sendToAMQP(uri string, prefix string, topic string, sender chan Message, do
 		return
 	}
 
-	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topic), "topic", true, false, false, false, nil)
+	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topicSuffix), "topic", true, false, false, false, nil)
 	if err != nil {
 		done <- err
 		return
@@ -93,7 +103,7 @@ func sendToAMQP(uri string, prefix string, topic string, sender chan Message, do
 		}
 
 		err = ch.Publish(
-			fmt.Sprintf("%s-%s", prefix, topic), // exchange
+			fmt.Sprintf("%s-%s", prefix, topicSuffix), // exchange
 			"test", // routing key
 			false,  // mandatory
 			false,  // immediate
@@ -149,7 +159,11 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 	return conn, nil
 }
 
-func listenToAMQP(uri string, prefix string, topic string, receiver chan Message, done chan error, id string) {
+func listenToAMQP(pmbConn Connection, done chan error, id string) {
+
+	uri := pmbConn.uri
+	prefix := pmbConn.prefix
+	receiver := pmbConn.In
 
 	conn, err := connectToAMQP(uri)
 	if err != nil {
@@ -163,7 +177,7 @@ func listenToAMQP(uri string, prefix string, topic string, receiver chan Message
 		return
 	}
 
-	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topic), "topic", true, false, false, false, nil)
+	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topicSuffix), "topic", true, false, false, false, nil)
 	if err != nil {
 		done <- err
 		return
@@ -187,7 +201,7 @@ func listenToAMQP(uri string, prefix string, topic string, receiver chan Message
 		return
 	}
 
-	err = ch.QueueBind(q.Name, "#", fmt.Sprintf("%s-%s", prefix, topic), false, nil)
+	err = ch.QueueBind(q.Name, "#", fmt.Sprintf("%s-%s", prefix, topicSuffix), false, nil)
 	if err != nil {
 		done <- err
 		return
