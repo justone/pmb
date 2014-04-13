@@ -3,9 +3,14 @@ package pmb
 import (
 	"github.com/streadway/amqp"
 
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -21,6 +26,7 @@ type Connection struct {
 	In     chan Message
 	uri    string
 	prefix string
+	Key    string
 }
 
 var topicSuffix = "pmb"
@@ -40,7 +46,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 	done := make(chan error)
 
-	conn := Connection{In: in, Out: out, uri: URI, prefix: prefix}
+	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix}
 
 	go listenToAMQP(conn, done, id)
 	go sendToAMQP(conn, done, id)
@@ -52,10 +58,10 @@ func connect(URI string, id string) (*Connection, error) {
 		}
 	}
 
-	return &conn, nil
+	return conn, nil
 }
 
-func sendToAMQP(pmbConn Connection, done chan error, id string) {
+func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
 	uri := pmbConn.uri
 	prefix := pmbConn.prefix
@@ -102,14 +108,30 @@ func sendToAMQP(pmbConn Connection, done chan error, id string) {
 			return
 		}
 
+		var body []byte
+		if len(pmbConn.Key) > 0 {
+			fmt.Println("Encrypting message...")
+			encrypted, err := encrypt([]byte(pmbConn.Key), string(json))
+
+			if err != nil {
+				fmt.Println("Unable to encrypt message!")
+				continue
+			}
+
+			body = []byte(encrypted)
+		} else {
+			body = json
+		}
+
+		fmt.Println("Sending raw message: ", string(body))
 		err = ch.Publish(
 			fmt.Sprintf("%s-%s", prefix, topicSuffix), // exchange
 			"test", // routing key
 			false,  // mandatory
 			false,  // immediate
 			amqp.Publishing{
-				ContentType: "application/json",
-				Body:        json,
+				ContentType: "text/plain",
+				Body:        body,
 			})
 
 		if err != nil {
@@ -159,7 +181,7 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 	return conn, nil
 }
 
-func listenToAMQP(pmbConn Connection, done chan error, id string) {
+func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
 	uri := pmbConn.uri
 	prefix := pmbConn.prefix
@@ -215,12 +237,31 @@ func listenToAMQP(pmbConn Connection, done chan error, id string) {
 		if !ok {
 			// TODO: connection or channel closed, re-initialize
 		}
+		fmt.Println("Raw message received: ", string(delivery.Body))
+
+		var message []byte
+		if delivery.Body[0] != '{' {
+			fmt.Println("Decrypting message...")
+			if len(pmbConn.Key) > 0 {
+				decrypted, err := decrypt([]byte(pmbConn.Key), string(delivery.Body))
+				if err != nil {
+					fmt.Println("Unable to decrypt message!")
+					continue
+				}
+
+				message = []byte(decrypted)
+			} else {
+				fmt.Println("Encrypted message and no key!")
+			}
+		} else {
+			message = delivery.Body
+		}
 
 		var rawData interface{}
-		err := json.Unmarshal(delivery.Body, &rawData)
+		err := json.Unmarshal(message, &rawData)
 		if err != nil {
-			// TODO: handle this error better
-			return
+			fmt.Println("Unable to unmarshal JSON data, skipping.")
+			continue
 		}
 
 		data := rawData.(map[string]interface{})
@@ -236,4 +277,46 @@ func listenToAMQP(pmbConn Connection, done chan error, id string) {
 		}
 	}
 
+}
+
+// encrypt string to base64'd AES
+func encrypt(key []byte, text string) (string, error) {
+	plaintext := []byte(text)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+
+	return base64.URLEncoding.EncodeToString(ciphertext), nil
+}
+
+// decrypt from base64'd AES
+func decrypt(key []byte, cryptoText string) (string, error) {
+	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	if len(ciphertext) < aes.BlockSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(ciphertext, ciphertext)
+
+	return fmt.Sprintf("%s", ciphertext), nil
 }

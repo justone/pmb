@@ -63,10 +63,14 @@ func displayNotice(message string) error {
 	return nil
 }
 
-func generateRandomID(prefix string) string {
-	random := make([]byte, 12)
+func generateRandomString(length int) string {
+	random := make([]byte, length)
 	for i, _ := range random {
 		random[i] = charactersForRandom[rand.Intn(len(charactersForRandom))]
 	}
-	return fmt.Sprintf("%s-%s", prefix, string(random))
+	return string(random)
+}
+
+func generateRandomID(prefix string) string {
+	return fmt.Sprintf("%s-%s", prefix, generateRandomString(12))
 }

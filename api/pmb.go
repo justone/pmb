@@ -36,15 +36,29 @@ func getConfig(uris map[string]string) PMBConfig {
 		config["introducer"] = introducerURI
 	}
 
+	if key := os.Getenv("PMB_KEY"); len(key) > 0 {
+		config["key"] = key
+	} else {
+		config["key"] = ""
+	}
+	fmt.Println(config)
+
 	return config
 }
 
 func (pmb *PMB) GetConnection(id string) (*Connection, error) {
 
-	if len(pmb.config["primary"]) > 0 {
-		return connect(pmb.config["primary"], id)
-	} else if len(pmb.config["introducer"]) > 0 {
-		return connectWithIntroducer(pmb.config["introducer"], id)
+	// TODO make a config param
+	if true {
+		if len(pmb.config["primary"]) > 0 {
+			return connectWithKey(pmb.config["primary"], id, pmb.config["key"])
+		}
+	} else {
+		if len(pmb.config["primary"]) > 0 {
+			return connect(pmb.config["primary"], id)
+		} else if len(pmb.config["introducer"]) > 0 {
+			return connectWithIntroducer(pmb.config["introducer"], id)
+		}
 	}
 
 	return nil, errors.New("No URI found, use '-u' to specify one")
@@ -59,16 +73,43 @@ func (pmb *PMB) GetIntroConnection(id string) (*Connection, error) {
 	return nil, errors.New("No URI found, use '-i' to specify one")
 }
 
+func connectWithKey(URI string, id string, key string) (*Connection, error) {
+	conn, err := connect(URI, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(key) > 0 {
+		conn.Key = key
+	} else {
+		conn.Key, err = requestSecret(conn)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return conn, nil
+}
+
 func connectWithIntroducer(URI string, id string) (*Connection, error) {
 	introConn, err := connect(URI, id)
 	if err != nil {
 		return nil, err
 	}
 
+	primaryURI, err := requestSecret(introConn)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect(strings.TrimSpace(primaryURI), id)
+}
+
+func requestSecret(conn *Connection) (string, error) {
 	data := map[string]interface{}{
 		"type": "RequestAuth",
 	}
-	introConn.Out <- Message{Contents: data}
+	conn.Out <- Message{Contents: data}
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -78,13 +119,12 @@ func connectWithIntroducer(URI string, id string) (*Connection, error) {
 	}
 
 	fmt.Printf("Enter secret: ")
-	primaryURI, err := bufio.NewReader(tty).ReadString('\n')
+	secret, err := bufio.NewReader(tty).ReadString('\n')
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	//fmt.Println("primary uri ", primaryURI)
 
-	return connect(strings.TrimSpace(primaryURI), id)
+	return strings.TrimSpace(secret), nil
 }
 
 func (pmb *PMB) PrimaryURI() string {
