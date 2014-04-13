@@ -37,6 +37,7 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, introConn *pmb.Connection
 		case message := <-conn.In:
 			if message.Contents["type"].(string) == "CopyData" {
 				copyToClipboard(message.Contents["data"].(string))
+				displayNotice("Remote copy complete.")
 
 				data := map[string]interface{}{
 					"type":   "DataCopied",
@@ -49,6 +50,7 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, introConn *pmb.Connection
 			if message.Contents["type"].(string) == "RequestAuth" {
 				// copy primary uri to clipboard
 				copyToClipboard(bus.PrimaryURI())
+				displayNotice("Copied secret.")
 			}
 
 			// any other message type is an error and ignored

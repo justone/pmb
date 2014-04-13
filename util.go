@@ -45,6 +45,24 @@ func copyToClipboard(data string) error {
 	return nil
 }
 
+func displayNotice(message string) error {
+	fmt.Printf("display message: %s\n", message)
+
+	var cmd *exec.Cmd
+
+	if _, err := exec.LookPath("growlnotify"); err == nil {
+		cmd = exec.Command("growlnotify", "-m", message)
+	} else if _, err := exec.LookPath("tmux"); err == nil {
+		cmd = exec.Command("tmux", "display-message", message)
+	}
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func generateRandomID(prefix string) string {
 	random := make([]byte, 12)
 	for i, _ := range random {
