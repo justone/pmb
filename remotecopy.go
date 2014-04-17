@@ -26,11 +26,11 @@ func (x *RemoteCopyCommand) Execute(args []string) error {
 	} else {
 		stdin, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
-			fmt.Errorf("error reading all input", err)
+			return fmt.Errorf("error reading all input", err)
 		}
 		data = string(stdin)
 	}
-	//fmt.Println("Data to copy ", data)
+	logger.Debugf("Data to copy: %s", data)
 
 	id := generateRandomID("remoteCopy")
 

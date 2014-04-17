@@ -100,7 +100,7 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 		message.Contents["ip"] = ip
 		message.Contents["sent"] = time.Now().Format(time.RFC3339)
 
-		fmt.Println("Sending message: ", message.Contents)
+		logger.Debugf("Sending message: %s", message.Contents)
 
 		json, err := json.Marshal(message.Contents)
 		if err != nil {
@@ -110,11 +110,11 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
 		var body []byte
 		if len(pmbConn.Key) > 0 {
-			fmt.Println("Encrypting message...")
+			logger.Debugf("Encrypting message...")
 			encrypted, err := encrypt([]byte(pmbConn.Key), string(json))
 
 			if err != nil {
-				fmt.Println("Unable to encrypt message!")
+				logger.Warningf("Unable to encrypt message!")
 				continue
 			}
 
@@ -123,7 +123,7 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 			body = json
 		}
 
-		fmt.Println("Sending raw message: ", string(body))
+		logger.Debugf("Sending raw message: %s", string(body))
 		err = ch.Publish(
 			fmt.Sprintf("%s-%s", prefix, topicSuffix), // exchange
 			"test", // routing key
@@ -177,7 +177,7 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 		return nil, err
 	}
 
-	//fmt.Println("Conn: ", conn)
+	//logger.Debugf("Conn: ", conn)
 	return conn, nil
 }
 
@@ -237,21 +237,21 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		if !ok {
 			// TODO: connection or channel closed, re-initialize
 		}
-		fmt.Println("Raw message received: ", string(delivery.Body))
+		logger.Debugf("Raw message received: %s", string(delivery.Body))
 
 		var message []byte
 		if delivery.Body[0] != '{' {
-			fmt.Println("Decrypting message...")
+			logger.Debugf("Decrypting message...")
 			if len(pmbConn.Key) > 0 {
 				decrypted, err := decrypt([]byte(pmbConn.Key), string(delivery.Body))
 				if err != nil {
-					fmt.Println("Unable to decrypt message!")
+					logger.Warningf("Unable to decrypt message!")
 					continue
 				}
 
 				message = []byte(decrypted)
 			} else {
-				fmt.Println("Encrypted message and no key!")
+				logger.Warningf("Encrypted message and no key!")
 			}
 		} else {
 			message = delivery.Body
@@ -260,7 +260,7 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		var rawData interface{}
 		err := json.Unmarshal(message, &rawData)
 		if err != nil {
-			fmt.Println("Unable to unmarshal JSON data, skipping.")
+			logger.Warningf("Unable to unmarshal JSON data, skipping.")
 			continue
 		}
 
@@ -270,10 +270,10 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
 		// hide messages from ourselves
 		if senderId != id {
-			fmt.Println("Message received: ", data)
+			logger.Debugf("Message received: %s", data)
 			receiver <- Message{Contents: data}
 		} else {
-			fmt.Println("Message received but ignored: ", data)
+			logger.Debugf("Message received but ignored: %s", data)
 		}
 	}
 

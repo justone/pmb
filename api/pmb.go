@@ -7,7 +7,11 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/loggo/loggo"
 )
+
+var logger = loggo.GetLogger("api")
 
 type PMBConfig map[string]string
 
@@ -41,7 +45,7 @@ func getConfig(uris map[string]string) PMBConfig {
 	} else {
 		config["key"] = ""
 	}
-	fmt.Println(config)
+	logger.Debugf("Config: %s", config)
 
 	return config
 }

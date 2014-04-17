@@ -1,12 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/loggo/loggo"
-
-	"fmt"
-	"os"
-	"time"
 )
 
 type GlobalOptions struct {
@@ -21,17 +19,10 @@ var parser = flags.NewParser(&globalOptions, flags.Default)
 
 var logger = loggo.GetLogger("")
 
-type PMBLogFormatter struct{}
-
-func (*PMBLogFormatter) Format(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) string {
-	return fmt.Sprintf("%s %s", level, message)
-}
-
 func main() {
 
 	// configure logging
 	logger.SetLogLevel(loggo.INFO)
-	loggo.ReplaceDefaultWriter(loggo.NewSimpleWriter(os.Stderr, &PMBLogFormatter{}))
 
 	// options to change log level
 	globalOptions.Quiet = func() {
