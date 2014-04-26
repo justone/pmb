@@ -48,6 +48,14 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 			// copy primary uri to clipboard
 			copyToClipboard(conn.Key)
 			displayNotice("Copied secret.")
+		} else if message.Contents["type"].(string) == "Notification" {
+			displayNotice(message.Contents["message"].(string))
+
+			data := map[string]interface{}{
+				"type":   "NotificationDisplayed",
+				"origin": message.Contents["id"].(string),
+			}
+			conn.Out <- pmb.Message{Contents: data}
 		}
 		// any other message type is an error and ignored
 	}
