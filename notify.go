@@ -2,19 +2,26 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/justone/pmb/api"
 )
 
 type NotifyCommand struct {
-	Message string `short:"m" long:"message" required:"true" description:"Message to send."`
+	Message string `short:"m" long:"message" description:"Message to send."`
 }
 
 var notifyCommand NotifyCommand
 
 func (x *NotifyCommand) Execute(args []string) error {
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+
+	if len(args) == 0 && len(notifyCommand.Message) == 0 {
+		return fmt.Errorf("A message is required")
+	}
 
 	id := generateRandomID("notify")
 
@@ -23,7 +30,7 @@ func (x *NotifyCommand) Execute(args []string) error {
 		return err
 	}
 
-	return runNotify(conn, id)
+	return runNotify(conn, id, args)
 }
 
 func init() {
@@ -33,11 +40,31 @@ func init() {
 		&notifyCommand)
 }
 
-func runNotify(conn *pmb.Connection, id string) error {
+func runNotify(conn *pmb.Connection, id string, args []string) error {
+
+	message := notifyCommand.Message
+
+	if len(args) > 0 {
+		cmd := exec.Command(args[0], args[1:]...)
+
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+
+		err := cmd.Run()
+
+		result := "successfully"
+		if err != nil {
+			result = fmt.Sprintf("with error '%s'", err.Error())
+		}
+
+		if len(message) == 0 {
+			message = fmt.Sprintf("Command [%s] completed %s.", strings.Join(args, " "), result)
+		}
+	}
 
 	notifyData := map[string]interface{}{
 		"type":    "Notification",
-		"message": notifyCommand.Message,
+		"message": message,
 	}
 	conn.Out <- pmb.Message{Contents: notifyData}
 
