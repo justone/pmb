@@ -78,8 +78,22 @@ sub get_sum {
 sub check_sum {
     my ( $local_path, $sum ) = @_;
 
-    my $output = `md5sum $local_path`;
-    my ($file_sum) = split( /\s+/, $output );
+    my $file_sum;
+    if ( bin_exists('openssl') ) {
+        my $output = `openssl md5 $local_path`;
+        $file_sum = ( split( /\s+/, $output ) )[1];
+    }
+    elsif ( bin_exists('md5sum') ) {
+        my $output = `md5sum $local_path`;
+        ($file_sum) = split( /\s+/, $output );
+    }
+    elsif ( bin_exists('gmd5sum') ) {
+        my $output = `gmd5sum $local_path`;
+        ($file_sum) = split( /\s+/, $output );
+    }
+    else {
+        die "Unable to check file sum.";
+    }
 
     DEBUG("downloaded: $file_sum\n");
     DEBUG("checked: $sum\n");
