@@ -37,7 +37,7 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 		message := <-conn.In
 		if message.Contents["type"].(string) == "CopyData" {
 			copyToClipboard(message.Contents["data"].(string))
-			displayNotice("Remote copy complete.")
+			displayNotice("Remote copy complete.", false)
 
 			data := map[string]interface{}{
 				"type":   "DataCopied",
@@ -47,9 +47,9 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 		} else if message.Contents["type"].(string) == "RequestAuth" {
 			// copy primary uri to clipboard
 			copyToClipboard(conn.Key)
-			displayNotice("Copied secret.")
+			displayNotice("Copied secret.", false)
 		} else if message.Contents["type"].(string) == "Notification" {
-			displayNotice(message.Contents["message"].(string))
+			displayNotice(message.Contents["message"].(string), true)
 
 			data := map[string]interface{}{
 				"type":   "NotificationDisplayed",

@@ -45,13 +45,18 @@ func copyToClipboard(data string) error {
 	return nil
 }
 
-func displayNotice(message string) error {
+func displayNotice(message string, sticky bool) error {
 	fmt.Printf("display message: %s\n", message)
 
 	var cmd *exec.Cmd
 
 	if _, err := exec.LookPath("growlnotify"); err == nil {
-		cmd = exec.Command("growlnotify", "-m", message)
+		cmdParts := []string{"growlnotify", "-m", message}
+		if sticky {
+			cmdParts = append(cmdParts, "-s")
+		}
+
+		cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
 	} else if _, err := exec.LookPath("tmux"); err == nil {
 		cmd = exec.Command("tmux", "display-message", message)
 	}
