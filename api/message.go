@@ -19,6 +19,7 @@ import (
 
 type Message struct {
 	Contents map[string]interface{}
+	Raw      string
 }
 
 type Connection struct {
@@ -271,7 +272,7 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		// hide messages from ourselves
 		if senderId != id {
 			logger.Debugf("Message received: %s", data)
-			receiver <- Message{Contents: data}
+			receiver <- Message{Contents: data, Raw: string(message)}
 		} else {
 			logger.Debugf("Message received but ignored: %s", data)
 		}
