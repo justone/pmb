@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/justone/pmb/api"
+	"github.com/mitchellh/go-ps"
 )
 
 type NotifyCommand struct {
 	Message string `short:"m" long:"message" description:"Message to send."`
+	Pid     int    `short:"p" long:"pid" description:"Notify after PID exits."`
 }
 
 var notifyCommand NotifyCommand
@@ -19,8 +21,17 @@ var notifyCommand NotifyCommand
 func (x *NotifyCommand) Execute(args []string) error {
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	if len(args) == 0 && len(notifyCommand.Message) == 0 {
+	if len(args) == 0 && len(notifyCommand.Message) == 0 && notifyCommand.Pid == 0 {
 		return fmt.Errorf("A message is required")
+	}
+
+	// fail fast if pid isn't found
+	if notifyCommand.Pid > 0 {
+		found, _ := findProcess(notifyCommand.Pid)
+
+		if !found {
+			return fmt.Errorf("Process %d not found.", notifyCommand.Pid)
+		}
 	}
 
 	id := generateRandomID("notify")
@@ -60,6 +71,28 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		if len(message) == 0 {
 			message = fmt.Sprintf("Command [%s] completed %s.", strings.Join(args, " "), result)
 		}
+	} else if notifyCommand.Pid != 0 {
+
+		notifyExecutable := ""
+		fmt.Printf("Waiting for pid %d to finish...\n", notifyCommand.Pid)
+		for {
+			found, exec := findProcess(notifyCommand.Pid)
+
+			// capture the name of the executable for the notification
+			if len(notifyExecutable) == 0 {
+				notifyExecutable = exec
+			}
+
+			if !found {
+				break
+			} else {
+				time.Sleep(1 * time.Second)
+			}
+		}
+
+		if len(message) == 0 {
+			message = fmt.Sprintf("Command [%s] completed.", notifyExecutable)
+		}
 	}
 
 	notifyData := map[string]interface{}{
@@ -82,4 +115,20 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 	}
 
 	return nil
+}
+
+func findProcess(pid int) (bool, string) {
+
+	procs, err := ps.Processes()
+	if err != nil {
+		return false, ""
+	}
+
+	for _, proc := range procs {
+		if proc.Pid() == notifyCommand.Pid {
+			return true, proc.Executable()
+		}
+	}
+
+	return false, ""
 }
