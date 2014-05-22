@@ -13,6 +13,6 @@ gox -osarch="darwin/amd64 linux/amd64"
 mkdir $VERSION
 
 cp bootstrap.template $VERSION/bootstrap
-perl -p -i -e "s/VERSION/$VERSION/g" $VERSION/bootstrap
+perl -p -i -e "s/__VERSION__/$VERSION/g" $VERSION/bootstrap
 md5sum pmb_* >> $VERSION/bootstrap
 cp pmb_* $VERSION/

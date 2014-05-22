@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-my $version = 'VERSION';
+my $version = '__VERSION__';
 
 my $base_url = 'http://get.pmb.io';
 my $os       = $^O;
