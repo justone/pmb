@@ -34,7 +34,7 @@ func (x *PluginCommand) Execute(args []string) error {
 
 	id := generateRandomID(fmt.Sprintf("plugin-%s", args[0]))
 
-	conn, err := bus.GetConnection(id)
+	conn, err := bus.GetConnection(id, false)
 	if err != nil {
 		return err
 	}

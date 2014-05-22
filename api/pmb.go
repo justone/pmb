@@ -50,12 +50,12 @@ func getConfig(uris map[string]string) PMBConfig {
 	return config
 }
 
-func (pmb *PMB) GetConnection(id string) (*Connection, error) {
+func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
 	// TODO make a config param
 	if true {
 		if len(pmb.config["primary"]) > 0 {
-			return connectWithKey(pmb.config["primary"], id, pmb.config["key"])
+			return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer)
 		}
 	} else {
 		if len(pmb.config["primary"]) > 0 {
@@ -77,7 +77,7 @@ func (pmb *PMB) GetIntroConnection(id string) (*Connection, error) {
 	return nil, errors.New("No URI found, use '-i' to specify one")
 }
 
-func connectWithKey(URI string, id string, key string) (*Connection, error) {
+func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Connection, error) {
 	conn, err := connect(URI, id)
 	if err != nil {
 		return nil, err
@@ -85,14 +85,57 @@ func connectWithKey(URI string, id string, key string) (*Connection, error) {
 
 	if len(key) > 0 {
 		conn.Key = key
+
+		// if we're not the introducer, check if the auth is valid
+		if !isIntroducer {
+			err = testAuth(conn, id)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return conn, nil
+
 	} else {
-		conn.Key, err = requestSecret(conn)
-		if err != nil {
-			return nil, err
+
+		// keep requesting auth until we can verify that it's valid
+		for {
+			conn.Key = ""
+			conn.Key, err = requestSecret(conn)
+			if err != nil {
+				return nil, err
+			}
+
+			err = testAuth(conn, id)
+			if err != nil {
+				logger.Warningf("Error with key: %s", err)
+			} else {
+				return conn, nil
+			}
 		}
 	}
 
 	return conn, nil
+}
+
+func testAuth(conn *Connection, id string) error {
+
+	conn.Out <- Message{Contents: map[string]interface{}{
+		"type": "TestAuth",
+	}}
+
+	timeout := time.After(1 * time.Second)
+	for {
+		select {
+		case message := <-conn.In:
+			data := message.Contents
+			if data["type"].(string) == "AuthValid" && data["origin"].(string) == id {
+				return nil
+			}
+		case _ = <-timeout:
+			return fmt.Errorf("Auth key was invalid.")
+		}
+	}
 }
 
 func connectWithIntroducer(URI string, id string) (*Connection, error) {

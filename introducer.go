@@ -17,7 +17,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	conn, err := bus.GetConnection(introducerCommand.Name)
+	conn, err := bus.GetConnection(introducerCommand.Name, true)
 	if err != nil {
 		return err
 	}
@@ -41,6 +41,12 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 
 			data := map[string]interface{}{
 				"type":   "DataCopied",
+				"origin": message.Contents["id"].(string),
+			}
+			conn.Out <- pmb.Message{Contents: data}
+		} else if message.Contents["type"].(string) == "TestAuth" {
+			data := map[string]interface{}{
+				"type":   "AuthValid",
 				"origin": message.Contents["id"].(string),
 			}
 			conn.Out <- pmb.Message{Contents: data}
