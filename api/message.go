@@ -64,23 +64,8 @@ func connect(URI string, id string) (*Connection, error) {
 
 func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
-	uri := pmbConn.uri
-	prefix := pmbConn.prefix
-	sender := pmbConn.Out
+	ch, err := setupSend(pmbConn.uri, pmbConn.prefix, id)
 
-	conn, err := connectToAMQP(uri)
-	if err != nil {
-		done <- err
-		return
-	}
-
-	ch, err := conn.Channel()
-	if err != nil {
-		done <- err
-		return
-	}
-
-	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topicSuffix), "topic", true, false, false, false, nil)
 	if err != nil {
 		done <- err
 		return
@@ -88,6 +73,7 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
 	done <- nil
 
+	sender := pmbConn.Out
 	for {
 		message := <-sender
 
@@ -126,7 +112,7 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
 		logger.Debugf("Sending raw message: %s", string(body))
 		err = ch.Publish(
-			fmt.Sprintf("%s-%s", prefix, topicSuffix), // exchange
+			fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
 			"test", // routing key
 			false,  // mandatory
 			false,  // immediate
@@ -136,8 +122,26 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 			})
 
 		if err != nil {
-			// TODO: connection probably needs to be re-initialized
-			return
+			logger.Warningf("Send connection fail reconnecting...", err)
+
+			// attempt to reconnect forever
+			ch, err = setupSendForever(pmbConn.uri, pmbConn.prefix, id)
+
+			if err != nil {
+				logger.Criticalf("Unable to reconnect, exiting... %s", err)
+				return
+			} else {
+				logger.Infof("Reconnected.")
+				err = ch.Publish(
+					fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
+					"test", // routing key
+					false,  // mandatory
+					false,  // immediate
+					amqp.Publishing{
+						ContentType: "text/plain",
+						Body:        body,
+					})
+			}
 		}
 	}
 }
@@ -184,59 +188,32 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 
 func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
-	uri := pmbConn.uri
-	prefix := pmbConn.prefix
-	receiver := pmbConn.In
+	msgs, err := setupListen(pmbConn.uri, pmbConn.prefix, id)
 
-	conn, err := connectToAMQP(uri)
 	if err != nil {
 		done <- err
 		return
 	}
 
-	ch, err := conn.Channel()
-	if err != nil {
-		done <- err
-		return
-	}
-
-	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topicSuffix), "topic", true, false, false, false, nil)
-	if err != nil {
-		done <- err
-		return
-	}
-
-	q, err := ch.QueueDeclarePassive(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
-	if err != nil {
-		ch, err = conn.Channel()
-		if err != nil {
-			done <- err
-			return
-		}
-		q, err = ch.QueueDeclare(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
-		if err != nil {
-			done <- err
-			return
-		}
-	} else {
-		err = fmt.Errorf("Another connection with the same id (%s) already exists.", id)
-		done <- err
-		return
-	}
-
-	err = ch.QueueBind(q.Name, "#", fmt.Sprintf("%s-%s", prefix, topicSuffix), false, nil)
-	if err != nil {
-		done <- err
-		return
-	}
-
-	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
 	done <- nil
 
+	receiver := pmbConn.In
 	for {
 		delivery, ok := <-msgs
 		if !ok {
-			// TODO: connection or channel closed, re-initialize
+			logger.Warningf("Listen connection fail, reconnecting...")
+
+			// attempt to reconnect forever
+			msgs, err = setupListenForever(pmbConn.uri, pmbConn.prefix, id)
+
+			if err != nil {
+				logger.Criticalf("Unable to reconnect, exiting... %s", err)
+				return
+			} else {
+				logger.Infof("Reconnected.")
+				continue
+			}
+
 		}
 		logger.Debugf("Raw message received: %s", string(delivery.Body))
 
@@ -278,6 +255,95 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		}
 	}
 
+}
+
+func setupSendForever(uri string, prefix string, id string) (*amqp.Channel, error) {
+
+	for {
+		ch, err := setupSend(uri, prefix, id)
+
+		if err == nil {
+			return ch, nil
+		}
+
+		logger.Warningf("Send setup failed, sleeping and then re-trying")
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func setupSend(uri string, prefix string, id string) (*amqp.Channel, error) {
+	conn, err := connectToAMQP(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topicSuffix), "topic", true, false, false, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return ch, nil
+}
+
+func setupListenForever(uri string, prefix string, id string) (<-chan amqp.Delivery, error) {
+
+	for {
+		msgs, err := setupListen(uri, prefix, id)
+
+		if err == nil {
+			return msgs, nil
+		}
+
+		logger.Warningf("Listen setup failed, sleeping and then re-trying")
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func setupListen(uri string, prefix string, id string) (<-chan amqp.Delivery, error) {
+
+	conn, err := connectToAMQP(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ch.ExchangeDeclare(fmt.Sprintf("%s-%s", prefix, topicSuffix), "topic", true, false, false, false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	q, err := ch.QueueDeclarePassive(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
+	if err != nil {
+		ch, err = conn.Channel()
+		if err != nil {
+			return nil, err
+		}
+		q, err = ch.QueueDeclare(fmt.Sprintf("%s-%s", prefix, id), false, true, false, false, nil)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = fmt.Errorf("Another connection with the same id (%s) already exists.", id)
+		return nil, err
+	}
+
+	err = ch.QueueBind(q.Name, "#", fmt.Sprintf("%s-%s", prefix, topicSuffix), false, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
+
+	return msgs, nil
 }
 
 // encrypt string to base64'd AES
