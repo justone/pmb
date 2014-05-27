@@ -33,6 +33,7 @@ func init() {
 }
 
 func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
+	logger.Infof("Introducer ready.")
 	for {
 		message := <-conn.In
 		if message.Contents["type"].(string) == "CopyData" {
