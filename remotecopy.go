@@ -57,7 +57,7 @@ func runRemoteCopy(conn *pmb.Connection, id string, data string) error {
 	}
 	conn.Out <- pmb.Message{Contents: copyData}
 
-	timeout := time.After(1 * time.Second)
+	timeout := time.After(5 * time.Second)
 	for {
 		select {
 		case message := <-conn.In:
