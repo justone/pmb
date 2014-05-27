@@ -25,7 +25,7 @@ func urisFromOpts(opts GlobalOptions) map[string]string {
 
 func copyToClipboard(data string) error {
 
-	logger.Infof("copy data: %s\n", strings.Replace(truncate(data, 30), "\n", "\\n", -1))
+	logger.Infof("copy data: %s\n", strings.Replace(truncate(data, 50), "\n", "\\n", -1))
 
 	var cmd *exec.Cmd
 
