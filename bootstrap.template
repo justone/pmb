@@ -46,7 +46,7 @@ sub fetch {
         system("wget -q $remote_path -O $local_path");
     }
     elsif ( bin_exists('curl') ) {
-        system("curl -s $remote_path $local_path");
+        system("curl -s $remote_path > $local_path");
     }
     my $rc = $? >> 8;
     DEBUG("RC: $rc\n");
