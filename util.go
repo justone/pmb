@@ -25,12 +25,11 @@ func urisFromOpts(opts GlobalOptions) map[string]string {
 
 func copyToClipboard(data string) error {
 
-	// TODO support more than OSX
-
-	fmt.Printf("copy data: %s\n", data)
+	logger.Infof("copy data: %s\n", strings.Replace(truncate(data, 30), "\n", "\\n", -1))
 
 	var cmd *exec.Cmd
 
+	// TODO support more than OSX and tmux
 	if _, err := exec.LookPath("pbcopy"); err == nil {
 		cmd = exec.Command("pbcopy")
 	} else if _, err := exec.LookPath("tmux"); err == nil {
@@ -45,8 +44,15 @@ func copyToClipboard(data string) error {
 	return nil
 }
 
+func truncate(data string, length int) string {
+	if len(data) > length {
+		return fmt.Sprintf("%s (truncated)", data[0:length])
+	}
+	return data
+}
+
 func displayNotice(message string, sticky bool) error {
-	fmt.Printf("display message: %s\n", message)
+	logger.Infof("display message: %s\n", message)
 
 	var cmd *exec.Cmd
 
