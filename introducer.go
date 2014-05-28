@@ -8,6 +8,7 @@ import (
 
 type IntroducerCommand struct {
 	Name string `short:"n" long:"name" description:"Name of this introducer." default:"introducer"`
+	OSX  string `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
 }
 
 var introducerCommand IntroducerCommand
@@ -17,12 +18,17 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	conn, err := bus.GetConnection(introducerCommand.Name, true)
-	if err != nil {
-		return err
-	}
+	if len(introducerCommand.OSX) > 0 {
 
-	return runIntroducer(bus, conn)
+		return handleOSXCommand(bus, introducerCommand.OSX, "introducer")
+	} else {
+		conn, err := bus.GetConnection(introducerCommand.Name, true)
+		if err != nil {
+			return err
+		}
+
+		return runIntroducer(bus, conn)
+	}
 }
 
 func init() {
