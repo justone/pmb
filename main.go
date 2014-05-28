@@ -8,10 +8,9 @@ import (
 )
 
 type GlobalOptions struct {
-	Quiet      func() `short:"q" long:"quiet" description:"Show as little information as possible."`
-	Verbose    func() `short:"v" long:"verbose" description:"Show verbose debug information."`
-	Primary    string `short:"p" long:"primary" description:"Primary URI."`
-	Introducer string `short:"i" long:"introducer" description:"Introducer URI."`
+	Quiet   func() `short:"q" long:"quiet" description:"Show as little information as possible."`
+	Verbose func() `short:"v" long:"verbose" description:"Show verbose debug information."`
+	Primary string `short:"p" long:"primary" description:"Primary URI."`
 }
 
 var globalOptions GlobalOptions

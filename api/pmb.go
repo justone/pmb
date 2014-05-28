@@ -34,12 +34,6 @@ func getConfig(uris map[string]string) PMBConfig {
 		config["primary"] = primaryURI
 	}
 
-	if len(uris["introducer"]) > 0 {
-		config["introducer"] = uris["introducer"]
-	} else if introducerURI := os.Getenv("PMB_INTRODUCER_URI"); len(introducerURI) > 0 {
-		config["introducer"] = introducerURI
-	}
-
 	if key := os.Getenv("PMB_KEY"); len(key) > 0 {
 		config["key"] = key
 	} else {
@@ -52,29 +46,11 @@ func getConfig(uris map[string]string) PMBConfig {
 
 func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
-	// TODO make a config param
-	if true {
-		if len(pmb.config["primary"]) > 0 {
-			return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer)
-		}
-	} else {
-		if len(pmb.config["primary"]) > 0 {
-			return connect(pmb.config["primary"], id)
-		} else if len(pmb.config["introducer"]) > 0 {
-			return connectWithIntroducer(pmb.config["introducer"], id)
-		}
+	if len(pmb.config["primary"]) > 0 {
+		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer)
 	}
 
-	return nil, errors.New("No URI found, use '-u' to specify one")
-}
-
-func (pmb *PMB) GetIntroConnection(id string) (*Connection, error) {
-
-	if len(pmb.config["introducer"]) > 0 {
-		return connect(pmb.config["introducer"], id)
-	}
-
-	return nil, errors.New("No URI found, use '-i' to specify one")
+	return nil, errors.New("No URI found, use '-p' to specify one")
 }
 
 func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Connection, error) {
@@ -136,20 +112,6 @@ func testAuth(conn *Connection, id string) error {
 			return fmt.Errorf("Auth key was invalid.")
 		}
 	}
-}
-
-func connectWithIntroducer(URI string, id string) (*Connection, error) {
-	introConn, err := connect(URI, id)
-	if err != nil {
-		return nil, err
-	}
-
-	primaryURI, err := requestSecret(introConn)
-	if err != nil {
-		return nil, err
-	}
-
-	return connect(strings.TrimSpace(primaryURI), id)
 }
 
 func requestSecret(conn *Connection) (string, error) {
