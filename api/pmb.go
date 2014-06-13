@@ -100,7 +100,7 @@ func testAuth(conn *Connection, id string) error {
 		"type": "TestAuth",
 	}}
 
-	timeout := time.After(1 * time.Second)
+	timeout := time.After(10 * time.Second)
 	for {
 		select {
 		case message := <-conn.In:
