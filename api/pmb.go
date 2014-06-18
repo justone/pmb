@@ -122,13 +122,18 @@ func requestSecret(conn *Connection) (string, error) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	tty, err := os.Open("/dev/tty")
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
 	if err != nil {
 		fmt.Errorf("failed to open /dev/tty", err)
 	}
 
-	fmt.Printf("Enter secret: ")
+	fmt.Fprintf(tty, "Enter secret: ")
 	secret, err := bufio.NewReader(tty).ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+
+	err = tty.Close()
 	if err != nil {
 		return "", err
 	}
