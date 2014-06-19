@@ -60,7 +60,7 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 		} else if message.Contents["type"].(string) == "RequestAuth" {
 			// copy primary uri to clipboard
 			copyToClipboard(conn.Key)
-			displayNotice("Copied secret.", false)
+			displayNotice("Copied key.", false)
 		} else if message.Contents["type"].(string) == "Notification" {
 			displayNotice(message.Contents["message"].(string), true)
 

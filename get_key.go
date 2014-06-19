@@ -27,7 +27,7 @@ func (x *GetKeyCommand) Execute(args []string) error {
 
 func init() {
 	parser.AddCommand("get-key",
-		"Print the secret key to stdout. (low level)",
+		"Print the encryption key to stdout. (low level)",
 		"",
 		&getKeyCommand)
 }

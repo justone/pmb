@@ -26,8 +26,8 @@ $ pmb notify -- long_process.rb
 
 What happens next is introduction:
 
-1. The notify agent sends an unencrypted message of type "RequestAuth" and prompts for the secret.
-2. The introducer reacts to the "RequestAuth" message by copying the encryption key into the local clipboard.
+1. The notify agent sends an unencrypted message of type "RequestAuth" and prompts for the encryption key.
+2. The introducer reacts to the "RequestAuth" message by copying the key into the local clipboard.
 3. The user then simply pastes the key into the prompt and the notify agent can now send secure encrypted messages.
 
 In the above case, the notify agent will send a "DisplayNotification" message when the `long_process.rb` process finishes. The introducer agent reacts to that by displaying an appropriate message to the user (e.g. via Growl).

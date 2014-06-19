@@ -77,7 +77,7 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Conn
 		// keep requesting auth until we can verify that it's valid
 		for {
 			conn.Key = ""
-			conn.Key, err = requestSecret(conn)
+			conn.Key, err = requestKey(conn)
 			if err != nil {
 				return nil, err
 			}
@@ -114,7 +114,7 @@ func testAuth(conn *Connection, id string) error {
 	}
 }
 
-func requestSecret(conn *Connection) (string, error) {
+func requestKey(conn *Connection) (string, error) {
 	data := map[string]interface{}{
 		"type": "RequestAuth",
 	}
@@ -127,8 +127,8 @@ func requestSecret(conn *Connection) (string, error) {
 		fmt.Errorf("failed to open /dev/tty", err)
 	}
 
-	fmt.Fprintf(tty, "Enter secret: ")
-	secret, err := bufio.NewReader(tty).ReadString('\n')
+	fmt.Fprintf(tty, "Enter key: ")
+	key, err := bufio.NewReader(tty).ReadString('\n')
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +138,7 @@ func requestSecret(conn *Connection) (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSpace(secret), nil
+	return strings.TrimSpace(key), nil
 }
 
 func (pmb *PMB) PrimaryURI() string {
