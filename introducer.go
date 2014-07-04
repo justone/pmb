@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/justone/pmb/api"
 )
 
 type IntroducerCommand struct {
-	Name string `short:"n" long:"name" description:"Name of this introducer." default:"introducer"`
+	Name string `short:"n" long:"name" description:"Name of this introducer."`
 	OSX  string `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
 }
 
@@ -18,11 +19,24 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
+	var name string
+	if len(introducerCommand.Name) > 0 {
+		name = introducerCommand.Name
+	} else {
+
+		hostname, err := os.Hostname()
+		if err != nil {
+			name = fmt.Sprintf("introducer-unknown-hostname-%s", generateRandomString(10))
+		} else {
+			name = fmt.Sprintf("introducer-%s", hostname)
+		}
+	}
+
 	if len(introducerCommand.OSX) > 0 {
 
 		return handleOSXCommand(bus, introducerCommand.OSX, "introducer")
 	} else {
-		conn, err := bus.GetConnection(introducerCommand.Name, true)
+		conn, err := bus.GetConnection(name, true)
 		if err != nil {
 			return err
 		}
