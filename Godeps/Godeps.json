@@ -1,0 +1,31 @@
+{
+	"ImportPath": "github.com/justone/pmb",
+	"GoVersion": "go1.2.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "bitbucket.org/kardianos/osext",
+			"Comment": "null-9",
+			"Rev": "364fb577de68fb646c4cb39cc0e09c887ee16376"
+		},
+		{
+			"ImportPath": "github.com/jessevdk/go-flags",
+			"Comment": "v1-172-g8ec9564",
+			"Rev": "8ec9564882e7923e632f012761c81c46dcf5bec1"
+		},
+		{
+			"ImportPath": "github.com/loggo/loggo",
+			"Rev": "89458b4dc99692bc24efe9c2252d7587f8dc247b"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-ps",
+			"Rev": "e8defe55e54eb8104de2889b8a7b38ad6293f664"
+		},
+		{
+			"ImportPath": "github.com/streadway/amqp",
+			"Rev": "447175b7fcf05275e85af37e20097c5ed0c5e165"
+		}
+	]
+}
