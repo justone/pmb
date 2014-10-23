@@ -8,7 +8,7 @@ echo "Building $VERSION"
 echo
 
 
-gox -osarch="darwin/amd64 linux/amd64"
+gox -osarch="darwin/amd64 linux/amd64 linux/arm"
 
 mkdir $VERSION
 
