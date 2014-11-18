@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -33,6 +34,25 @@ func copyToClipboard(data string) error {
 		cmd = exec.Command("pbcopy")
 	} else if _, err := exec.LookPath("tmux"); err == nil {
 		cmd = exec.Command("tmux", "load-buffer", "-")
+	}
+	cmd.Stdin = strings.NewReader(data)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func openURL(data string) error {
+
+	var cmd *exec.Cmd
+
+	// TODO support more than OSX
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command("open", data)
+	} else {
+		return fmt.Errorf("unable to open URL on this platform")
 	}
 	cmd.Stdin = strings.NewReader(data)
 

@@ -65,6 +65,19 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 				"origin": message.Contents["id"].(string),
 			}
 			conn.Out <- pmb.Message{Contents: data}
+		} else if message.Contents["type"].(string) == "OpenURL" {
+			err := openURL(message.Contents["data"].(string))
+			if err != nil {
+				return err
+			}
+
+			displayNotice("URL opened.", false)
+
+			data := map[string]interface{}{
+				"type":   "URLOpened",
+				"origin": message.Contents["id"].(string),
+			}
+			conn.Out <- pmb.Message{Contents: data}
 		} else if message.Contents["type"].(string) == "TestAuth" {
 			data := map[string]interface{}{
 				"type":   "AuthValid",
