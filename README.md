@@ -59,7 +59,6 @@ This project wouldn't be possible without the following libraries:
 * [amqp](https://github.com/streadway/amqp)
 * [go-flags](https://github.com/jessevdk/go-flags)
 * [loggo](https://github.com/loggo/loggo)
-* [go-ps](https://github.com/mitchellh/go-ps)
 * [osext](http://godoc.org/bitbucket.org/kardianos/osext)
 
 # License

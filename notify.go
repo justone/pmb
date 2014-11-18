@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/justone/pmb/api"
-	"github.com/mitchellh/go-ps"
 )
 
 type NotifyCommand struct {
@@ -117,17 +117,19 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 	return nil
 }
 
+// TODO: use a go-based library for this, maybe gopsutil
 func findProcess(pid int) (bool, string) {
 
-	procs, err := ps.Processes()
-	if err != nil {
-		return false, ""
-	}
+	procCmd := exec.Command("/bin/ps", "-o", "pid=", "-p", strconv.Itoa(pid))
 
-	for _, proc := range procs {
-		if proc.Pid() == notifyCommand.Pid {
-			return true, proc.Executable()
-		}
+	err := procCmd.Run()
+
+	if _, ok := err.(*exec.ExitError); ok {
+		return false, ""
+	} else if err != nil {
+		return false, ""
+	} else {
+		return true, fmt.Sprintf("pid %d", pid)
 	}
 
 	return false, ""
