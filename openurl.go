@@ -44,7 +44,7 @@ func (x *OpenURLCommand) Execute(args []string) error {
 
 func init() {
 	parser.AddCommand("openurl",
-		"Remote copy.",
+		"Open URL remotely.",
 		"",
 		&openURLCommand)
 }
