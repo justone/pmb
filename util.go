@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -75,15 +76,22 @@ func displayNotice(message string, sticky bool) error {
 
 	var cmd *exec.Cmd
 
+	path := os.Getenv("PATH")
+	logger.Debugf("looking for notifiers in path: %s\n", path)
 	if _, err := exec.LookPath("growlnotify"); err == nil {
 		cmdParts := []string{"growlnotify", "-m", message}
 		if sticky {
 			cmdParts = append(cmdParts, "-s")
 		}
 
+		logger.Debugf("Using growlnotify for notification.")
 		cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
 	} else if _, err := exec.LookPath("tmux"); err == nil {
 		cmd = exec.Command("tmux", "display-message", message)
+		logger.Debugf("Using tmux for notification.")
+	} else {
+		logger.Warningf("Unable to display notice.")
+		return nil
 	}
 
 	err := cmd.Run()
