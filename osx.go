@@ -188,6 +188,12 @@ func generateLaunchConfig(launchData interface{}) string {
     </dict>
 </plist>`
 
+	// TODO: add lines like this to show logs
+	// <key>StandardOutPath</key>
+	// <string>/Users/foo/pmb_out.log</string>
+	// <key>StandardErrorPath</key>
+	// <string>/Users/foo/pmb_err.log</string>
+
 	tmpl := template.Must(template.New("configure").Parse(configureTemplate))
 	var output bytes.Buffer
 
