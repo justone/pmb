@@ -53,6 +53,32 @@ func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error)
 	return nil, errors.New("No URI found, use '-p' to specify one")
 }
 
+func (pmb *PMB) CopyKey(id string) (*Connection, error) {
+
+	if len(pmb.config["primary"]) > 0 {
+		return copyKey(pmb.config["primary"], id)
+	}
+
+	return nil, errors.New("No URI found, use '-p' to specify one")
+}
+
+func copyKey(URI string, id string) (*Connection, error) {
+	conn, err := connect(URI, id)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]interface{}{
+		"type": "RequestAuth",
+	}
+	conn.Out <- Message{Contents: data}
+
+	// wait a second for the message to go out
+	time.Sleep(1 * time.Second)
+
+	return conn, nil
+}
+
 func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Connection, error) {
 	conn, err := connect(URI, id)
 	if err != nil {
