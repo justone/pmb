@@ -9,8 +9,8 @@ import (
 	"strings"
 	"text/template"
 
-	"bitbucket.org/kardianos/osext"
 	"github.com/justone/pmb/api"
+	"github.com/kardianos/osext"
 )
 
 func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
