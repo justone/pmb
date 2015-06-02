@@ -1,6 +1,12 @@
 package pmb
 
 import (
+	"io/ioutil"
+	"log"
+	"net/http"
+
+	"github.com/go-martini/martini"
+	"github.com/justone/go-minibus"
 	"github.com/streadway/amqp"
 
 	"crypto/aes"
@@ -31,6 +37,44 @@ type Connection struct {
 }
 
 var topicSuffix = "pmb"
+
+func serve() error {
+	m := martini.New()
+	route := martini.NewRouter()
+
+	mb := minibus.Init()
+
+	route.Get("/conn/:cust/:conn", func(res http.ResponseWriter, params martini.Params) {
+		cust := params["cust"]
+		conn := params["conn"]
+
+		message, err := mb.Receive(cust, conn)
+		if err != nil {
+			fmt.Fprintln(res, "{}")
+		} else {
+			fmt.Fprintln(res, message.Contents)
+		}
+	})
+
+	route.Post("/conn/:cust", func(res http.ResponseWriter, req *http.Request, params martini.Params) {
+		cust := params["cust"]
+
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			http.Error(res, "Unable to read request body: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		mb.Send(cust, string(body))
+	})
+
+	m.Action(route.Handle)
+	log.Println("Waiting for connections...")
+
+	m.Run()
+
+	return nil
+}
 
 func connect(URI string, id string) (*Connection, error) {
 

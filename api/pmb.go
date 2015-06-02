@@ -62,6 +62,15 @@ func (pmb *PMB) CopyKey(id string) (*Connection, error) {
 	return nil, errors.New("No URI found, use '-p' to specify one")
 }
 
+func (pmb *PMB) StartBroker(id string) error {
+
+	fmt.Println("ID of broker: ", id)
+
+	serve()
+
+	return nil
+}
+
 func copyKey(URI string, id string) (*Connection, error) {
 	conn, err := connect(URI, id)
 	if err != nil {
