@@ -49,6 +49,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix}
 
+	logger.Debugf("calling listen/send")
 	go listenToAMQP(conn, done, id)
 	go sendToAMQP(conn, done, id)
 
@@ -64,6 +65,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
+	logger.Debugf("calling setupSend")
 	ch, err := setupSend(pmbConn.uri, pmbConn.prefix, id)
 
 	if err != nil {
@@ -173,7 +175,9 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 			cfg.InsecureSkipVerify = true
 		}
 
+		logger.Debugf("calling DialTLS")
 		conn, err = amqp.DialTLS(uri, cfg)
+		logger.Debugf("Connection obtained")
 	} else {
 		conn, err = amqp.Dial(uri)
 	}
@@ -188,6 +192,7 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 
 func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
+	logger.Debugf("calling setupListen")
 	msgs, err := setupListen(pmbConn.uri, pmbConn.prefix, id)
 
 	if err != nil {
@@ -272,6 +277,7 @@ func setupSendForever(uri string, prefix string, id string) (*amqp.Channel, erro
 }
 
 func setupSend(uri string, prefix string, id string) (*amqp.Channel, error) {
+	logger.Debugf("calling connectToAMQP")
 	conn, err := connectToAMQP(uri)
 	if err != nil {
 		return nil, err
@@ -306,6 +312,7 @@ func setupListenForever(uri string, prefix string, id string) (<-chan amqp.Deliv
 
 func setupListen(uri string, prefix string, id string) (<-chan amqp.Delivery, error) {
 
+	logger.Debugf("calling connectToAMQP")
 	conn, err := connectToAMQP(uri)
 	if err != nil {
 		return nil, err

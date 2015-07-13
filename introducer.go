@@ -17,6 +17,7 @@ var introducerCommand IntroducerCommand
 func (x *IntroducerCommand) Execute(args []string) error {
 	os.Setenv("PMB_KEY", generateRandomString(32))
 
+	logger.Debugf("calling GetPMB")
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
 	var name string
@@ -36,11 +37,13 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 		return handleOSXCommand(bus, introducerCommand.OSX, "introducer")
 	} else {
+		logger.Debugf("calling GetConnection")
 		conn, err := bus.GetConnection(name, true)
 		if err != nil {
 			return err
 		}
 
+		logger.Debugf("calling runIntroducer")
 		return runIntroducer(bus, conn)
 	}
 }

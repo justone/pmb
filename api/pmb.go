@@ -47,6 +47,7 @@ func getConfig(uris map[string]string) PMBConfig {
 func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
+		logger.Debugf("calling connectWithKey")
 		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer)
 	}
 
@@ -80,6 +81,7 @@ func copyKey(URI string, id string) (*Connection, error) {
 }
 
 func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Connection, error) {
+	logger.Debugf("calling connect")
 	conn, err := connect(URI, id)
 	if err != nil {
 		return nil, err
