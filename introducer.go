@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -9,14 +10,25 @@ import (
 )
 
 type IntroducerCommand struct {
-	Name string `short:"n" long:"name" description:"Name of this introducer."`
-	OSX  string `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
+	Name       string `short:"n" long:"name" description:"Name of this introducer."`
+	OSX        string `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
+	PersistKey bool   `short:"p" long:"persist-key" description:"Persist the key and re-use it rather than generating a new key every run."`
 }
 
 var introducerCommand IntroducerCommand
 
 func (x *IntroducerCommand) Execute(args []string) error {
-	os.Setenv("PMB_KEY", generateRandomString(32))
+	if introducerCommand.PersistKey {
+		keyStore := fmt.Sprintf("%s/.pmb_key", os.Getenv("HOME"))
+		key, err := ioutil.ReadFile(keyStore)
+		if err != nil {
+			key = []byte(generateRandomString(32))
+			ioutil.WriteFile(keyStore, key, 0600)
+		}
+		os.Setenv("PMB_KEY", string(key))
+	} else {
+		os.Setenv("PMB_KEY", generateRandomString(32))
+	}
 
 	logger.Debugf("calling GetPMB")
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
@@ -36,7 +48,16 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 	if len(introducerCommand.OSX) > 0 {
 
-		return handleOSXCommand(bus, introducerCommand.OSX, "introducer")
+		// capture existing args so they are reflected in the runner
+		args := []string{"introducer"}
+		if introducerCommand.PersistKey {
+			args = append(args, "-p")
+		}
+		if len(introducerCommand.Name) > 0 {
+			args = append(args, "-n", introducerCommand.Name)
+		}
+
+		return handleOSXCommand(bus, introducerCommand.OSX, strings.Join(args, " "))
 	} else {
 		logger.Debugf("calling GetConnection")
 		conn, err := bus.GetConnection(name, true)
