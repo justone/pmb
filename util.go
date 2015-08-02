@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var charactersForRandom = []byte("1234567890abcdef")
+var charactersForRandom = []byte("1234567890abcdefghijklmnopqrstuvwxyz")
 
 func init() {
 	rand.Seed(time.Now().UnixNano())

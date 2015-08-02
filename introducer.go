@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/justone/pmb/api"
 )
@@ -89,7 +90,7 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 			conn.Out <- pmb.Message{Contents: data}
 		} else if message.Contents["type"].(string) == "RequestAuth" {
 			// copy primary uri to clipboard
-			copyToClipboard(conn.Key)
+			copyToClipboard(strings.Join(conn.Keys, ","))
 			displayNotice("Copied key.", false)
 		} else if message.Contents["type"].(string) == "Notification" {
 			displayNotice(message.Contents["message"].(string), true)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -88,7 +89,11 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Conn
 	}
 
 	if len(key) > 0 {
-		conn.Key = key
+		// convert keys
+		conn.Keys, err = parseKeys(key)
+		if err != nil {
+			return nil, err
+		}
 
 		// if we're not the introducer, check if the auth is valid
 		if !isIntroducer {
@@ -104,8 +109,14 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Conn
 
 		// keep requesting auth until we can verify that it's valid
 		for {
-			conn.Key = ""
-			conn.Key, err = requestKey(conn)
+			conn.Keys = []string{}
+			inkeys, err := requestKey(conn)
+			if err != nil {
+				return nil, err
+			}
+
+			// convert keys
+			conn.Keys, err = parseKeys(inkeys)
 			if err != nil {
 				return nil, err
 			}
@@ -120,6 +131,17 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Conn
 	}
 
 	return conn, nil
+}
+
+func parseKeys(keystring string) ([]string, error) {
+	keyre := regexp.MustCompile("[a-z0-9]{32}")
+	keys := keyre.FindAllString(keystring, -1)
+
+	if len(keys) == 0 {
+		return []string{}, fmt.Errorf("Auth key(s) invalid.")
+	}
+
+	return keys, nil
 }
 
 func testAuth(conn *Connection, id string) error {

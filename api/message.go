@@ -27,7 +27,7 @@ type Connection struct {
 	In     chan Message
 	uri    string
 	prefix string
-	Key    string
+	Keys   []string
 }
 
 var topicSuffix = "pmb"
@@ -97,52 +97,56 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 			return
 		}
 
-		var body []byte
-		if len(pmbConn.Key) > 0 {
+		var bodies [][]byte
+		if len(pmbConn.Keys) > 0 {
 			logger.Debugf("Encrypting message...")
-			encrypted, err := encrypt([]byte(pmbConn.Key), string(json))
+			for _, key := range pmbConn.Keys {
+				encrypted, err := encrypt([]byte(key), string(json))
 
-			if err != nil {
-				logger.Warningf("Unable to encrypt message!")
-				continue
+				if err != nil {
+					logger.Warningf("Unable to encrypt message!")
+					continue
+				}
+
+				bodies = append(bodies, []byte(encrypted))
 			}
-
-			body = []byte(encrypted)
 		} else {
-			body = json
+			bodies = [][]byte{json}
 		}
 
-		logger.Debugf("Sending raw message: %s", string(body))
-		err = ch.Publish(
-			fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
-			"test", // routing key
-			false,  // mandatory
-			false,  // immediate
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        body,
-			})
-
-		if err != nil {
-			logger.Warningf("Send connection fail reconnecting...", err)
-
-			// attempt to reconnect forever
-			ch, err = setupSendForever(pmbConn.uri, pmbConn.prefix, id)
+		for _, body := range bodies {
+			logger.Debugf("Sending raw message: %s", string(body))
+			err = ch.Publish(
+				fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
+				"test", // routing key
+				false,  // mandatory
+				false,  // immediate
+				amqp.Publishing{
+					ContentType: "text/plain",
+					Body:        body,
+				})
 
 			if err != nil {
-				logger.Criticalf("Unable to reconnect, exiting... %s", err)
-				return
-			} else {
-				logger.Infof("Reconnected.")
-				err = ch.Publish(
-					fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
-					"test", // routing key
-					false,  // mandatory
-					false,  // immediate
-					amqp.Publishing{
-						ContentType: "text/plain",
-						Body:        body,
-					})
+				logger.Warningf("Send connection fail reconnecting...", err)
+
+				// attempt to reconnect forever
+				ch, err = setupSendForever(pmbConn.uri, pmbConn.prefix, id)
+
+				if err != nil {
+					logger.Criticalf("Unable to reconnect, exiting... %s", err)
+					return
+				} else {
+					logger.Infof("Reconnected.")
+					err = ch.Publish(
+						fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
+						"test", // routing key
+						false,  // mandatory
+						false,  // immediate
+						amqp.Publishing{
+							ContentType: "text/plain",
+							Body:        body,
+						})
+				}
 			}
 		}
 	}
@@ -225,14 +229,23 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		var message []byte
 		if delivery.Body[0] != '{' {
 			logger.Debugf("Decrypting message...")
-			if len(pmbConn.Key) > 0 {
-				decrypted, err := decrypt([]byte(pmbConn.Key), string(delivery.Body))
-				if err != nil {
-					logger.Warningf("Unable to decrypt message!")
+			if len(pmbConn.Keys) > 0 {
+				decryptedOk := false
+				for _, key := range pmbConn.Keys {
+					decrypted, err := decrypt([]byte(key), string(delivery.Body))
+					if err != nil {
+						logger.Warningf("Unable to decrypt message!")
+						continue
+					}
+
+					decryptedOk = true
+					message = []byte(decrypted)
+				}
+
+				if !decryptedOk {
 					continue
 				}
 
-				message = []byte(decrypted)
 			} else {
 				logger.Warningf("Encrypted message and no key!")
 			}
@@ -243,7 +256,7 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		var rawData interface{}
 		err := json.Unmarshal(message, &rawData)
 		if err != nil {
-			logger.Warningf("Unable to unmarshal JSON data, skipping.")
+			logger.Debugf("Unable to unmarshal JSON data, skipping.")
 			continue
 		}
 

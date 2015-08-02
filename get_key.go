@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/justone/pmb/api"
 )
@@ -34,7 +35,7 @@ func init() {
 
 func runGetKey(conn *pmb.Connection) error {
 
-	fmt.Println(conn.Key)
+	fmt.Println(strings.Join(conn.Keys, ","))
 
 	return nil
 }
