@@ -16,7 +16,7 @@ echo
 # use bundled versions
 export GOPATH=`godep path`:$GOPATH
 
-gox -osarch="darwin/amd64 linux/amd64 linux/arm"
+gox -ldflags "-X main.version $VERSION" -osarch="darwin/amd64 linux/amd64 linux/arm"
 
 mkdir $VERSION
 
