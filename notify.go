@@ -12,8 +12,9 @@ import (
 )
 
 type NotifyCommand struct {
-	Message string `short:"m" long:"message" description:"Message to send."`
-	Pid     int    `short:"p" long:"pid" description:"Notify after PID exits."`
+	Message   string `short:"m" long:"message" description:"Message to send."`
+	Pid       int    `short:"p" long:"pid" description:"Notify after PID exits."`
+	Important bool   `short:"i" long:"importan" description:"Label the notification as important."`
 }
 
 var notifyCommand NotifyCommand
@@ -95,9 +96,12 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		}
 	}
 
+	notificationId := generateRandomID("notify")
 	notifyData := map[string]interface{}{
-		"type":    "Notification",
-		"message": message,
+		"type":            "Notification",
+		"notification-id": notificationId,
+		"message":         message,
+		"important":       notifyCommand.Important,
 	}
 	conn.Out <- pmb.Message{Contents: notifyData}
 
