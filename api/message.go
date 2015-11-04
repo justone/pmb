@@ -227,9 +227,11 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		logger.Debugf("Raw message received: %s", string(delivery.Body))
 
 		var message []byte
+		var rawData interface{}
 		if delivery.Body[0] != '{' {
 			logger.Debugf("Decrypting message...")
 			if len(pmbConn.Keys) > 0 {
+				logger.Debugf("Attemping to decrypt with %d keys...", len(pmbConn.Keys))
 				decryptedOk := false
 				for _, key := range pmbConn.Keys {
 					decrypted, err := decrypt([]byte(key), string(delivery.Body))
@@ -238,8 +240,17 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 						continue
 					}
 
+					// check if message was decrypted into json
+					var rd interface{}
+					err = json.Unmarshal([]byte(decrypted), &rd)
+					if err != nil {
+						logger.Warningf("Unable to decrypt message (bad key)!")
+						continue
+					}
+
 					decryptedOk = true
-					message = []byte(decrypted)
+					logger.Debugf("Successfully decrypted with %s...", key[0:10])
+					rawData = rd
 				}
 
 				if !decryptedOk {
@@ -251,13 +262,11 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 			}
 		} else {
 			message = delivery.Body
-		}
-
-		var rawData interface{}
-		err := json.Unmarshal(message, &rawData)
-		if err != nil {
-			logger.Debugf("Unable to unmarshal JSON data, skipping.")
-			continue
+			err := json.Unmarshal(message, &rawData)
+			if err != nil {
+				logger.Debugf("Unable to unmarshal JSON data, skipping.")
+				continue
+			}
 		}
 
 		data := rawData.(map[string]interface{})
