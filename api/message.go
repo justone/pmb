@@ -244,7 +244,10 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 					var rd interface{}
 					err = json.Unmarshal([]byte(decrypted), &rd)
 					if err != nil {
-						logger.Warningf("Unable to decrypt message (bad key)!")
+						// only report this error at debug level.  When
+						// multiple keys exist, this will always print
+						// something, and it's not error worthy
+						logger.Debugf("Unable to decrypt message (bad key)!")
 						continue
 					}
 
