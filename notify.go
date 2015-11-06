@@ -37,7 +37,7 @@ func (x *NotifyCommand) Execute(args []string) error {
 
 	id := generateRandomID("notify")
 
-	conn, err := bus.GetConnection(id, false)
+	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {
 		return err
 	}

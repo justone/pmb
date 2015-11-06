@@ -60,7 +60,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 		return handleOSXCommand(bus, introducerCommand.OSX, strings.Join(args, " "))
 	} else {
 		logger.Debugf("calling GetConnection")
-		conn, err := bus.GetConnection(name, true)
+		conn, err := bus.ConnectIntroducer(name)
 		if err != nil {
 			return err
 		}

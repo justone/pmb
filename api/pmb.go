@@ -45,11 +45,31 @@ func getConfig(uris map[string]string) PMBConfig {
 	return config
 }
 
+func (pmb *PMB) ConnectIntroducer(id string) (*Connection, error) {
+
+	if len(pmb.config["primary"]) > 0 {
+		logger.Debugf("calling connectWithKey")
+		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], true, true)
+	}
+
+	return nil, errors.New("No URI found, use '-p' to specify one")
+}
+
+func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
+
+	if len(pmb.config["primary"]) > 0 {
+		logger.Debugf("calling connectWithKey")
+		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], true, checkKey)
+	}
+
+	return nil, errors.New("No URI found, use '-p' to specify one")
+}
+
 func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
 		logger.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer)
+		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer, true)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -81,7 +101,7 @@ func copyKey(URI string, id string) (*Connection, error) {
 	return conn, nil
 }
 
-func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Connection, error) {
+func connectWithKey(URI string, id string, key string, isIntroducer bool, checkKey bool) (*Connection, error) {
 	logger.Debugf("calling connect")
 	conn, err := connect(URI, id)
 	if err != nil {
@@ -96,7 +116,7 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Conn
 		}
 
 		// if we're not the introducer, check if the auth is valid
-		if !isIntroducer {
+		if !isIntroducer && checkKey {
 			err = testAuth(conn, id)
 			if err != nil {
 				return nil, err
@@ -121,11 +141,15 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool) (*Conn
 				return nil, err
 			}
 
+			if !checkKey {
+				break
+			}
+
 			err = testAuth(conn, id)
 			if err != nil {
 				logger.Warningf("Error with key: %s", err)
 			} else {
-				return conn, nil
+				break
 			}
 		}
 	}

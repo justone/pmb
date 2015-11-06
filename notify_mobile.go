@@ -43,7 +43,7 @@ func (x *NotifyMobileCommand) Execute(args []string) error {
 
 	id := generateRandomID("notifyMobile")
 
-	conn, err := bus.GetConnection(id, false)
+	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {
 		return err
 	}

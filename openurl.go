@@ -34,7 +34,7 @@ func (x *OpenURLCommand) Execute(args []string) error {
 
 	id := generateRandomID("openURL")
 
-	conn, err := bus.GetConnection(id, false)
+	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {
 		return err
 	}
