@@ -12,7 +12,10 @@ my $local    = "$ENV{HOME}/.pmb";
 
 my $os_bits_to_name = {
     darwin => { x86_64 => 'pmb_darwin_amd64', },
-    linux  => { x86_64 => 'pmb_linux_amd64', },
+    linux  => {
+        x86_64 => 'pmb_linux_amd64',
+        armv6l => 'pmb_linux_arm'
+    },
 };
 
 chomp($bits);
