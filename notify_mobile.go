@@ -9,9 +9,11 @@ import (
 )
 
 type NotifyMobileCommand struct {
-	PushoverToken   string `long:"pushover-token" description:"Pushover token (can also set PMB_PUSHOVER_TOKEN)."`
-	PushoverUserKey string `long:"pushover-user-key" description:"Pushover user key (can also set PMB_PUSHOVER_USER_KEY)."`
-	Provider        string `short:"p" long:"provider" description:"Mobile notification provider (only Pushover so far)"`
+	PushoverToken       string  `long:"pushover-token" description:"Pushover token (can also set PMB_PUSHOVER_TOKEN)."`
+	PushoverUserKey     string  `long:"pushover-user-key" description:"Pushover user key (can also set PMB_PUSHOVER_USER_KEY)."`
+	Provider            string  `short:"p" long:"provider" description:"Mobile notification provider (only Pushover so far)"`
+	LevelAlways         float64 `short:"a" long:"level-always" description:"Level at which always send to Pushover." default:"4"`
+	LevelUnacknowledged float64 `short:"u" long:"level-unacknowledged" description:"Level at which unacknowledged are sent to Pushover." default:"2"`
 }
 
 var notifyMobileCommand NotifyMobileCommand
@@ -53,25 +55,30 @@ func (x *NotifyMobileCommand) Execute(args []string) error {
 
 func init() {
 	parser.AddCommand("notify-mobile",
-		"Push important or un-notified messages to NotifyMobile.",
+		"Send messages to Pushover.",
 		"",
 		&notifyMobileCommand)
 }
 
 func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey string) error {
 
+	fmt.Printf("always: %f, unacknowledged: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged)
+
 	for {
 		message := <-conn.In
 		if message.Contents["type"].(string) == "Notification" {
-			if message.Contents["important"].(bool) {
+			level := message.Contents["level"].(float64)
+			if level >= notifyMobileCommand.LevelAlways {
 				fmt.Println("Important notification found, sending Pushover")
 				err := sendPushover(token, userKey, message.Contents["message"].(string))
 				if err != nil {
 					fmt.Println("Error sending Pushover notification: ", err)
 				}
-			} else {
-				fmt.Println("Notification found")
+			} else if level >= notifyMobileCommand.LevelUnacknowledged {
+				fmt.Println("Potentially unacknowledged notification found, unfortunately I can't do anything with it.")
 				// TODO: detect if not properly notified elsewhere and send Pushover
+			} else {
+				fmt.Println("Unimportant notification found, dropping on the floor.")
 			}
 		}
 	}

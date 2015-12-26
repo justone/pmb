@@ -12,9 +12,9 @@ import (
 )
 
 type NotifyCommand struct {
-	Message   string `short:"m" long:"message" description:"Message to send."`
-	Pid       int    `short:"p" long:"pid" description:"Notify after PID exits."`
-	Important bool   `short:"i" long:"importan" description:"Label the notification as important."`
+	Message string  `short:"m" long:"message" description:"Message to send."`
+	Pid     int     `short:"p" long:"pid" description:"Notify after PID exits."`
+	Level   float64 `short:"l" long:"level" description:"Notification level (1-5), higher numbers indictate higher importance" default:"3"`
 }
 
 var notifyCommand NotifyCommand
@@ -103,7 +103,7 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		"type":            "Notification",
 		"notification-id": notificationId,
 		"message":         message,
-		"important":       notifyCommand.Important,
+		"level":           notifyCommand.Level,
 	}
 	conn.Out <- pmb.Message{Contents: notifyData}
 

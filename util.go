@@ -72,7 +72,11 @@ func truncate(data string, length int) string {
 }
 
 func displayNotice(message string, sticky bool) error {
-	logger.Infof("display message: %s\n", message)
+	stickyText := "sticky"
+	if !sticky {
+		stickyText = "not sticky"
+	}
+	logger.Infof("display message: %s (%s)\n", message, stickyText)
 
 	var cmd *exec.Cmd
 

@@ -10,9 +10,10 @@ import (
 )
 
 type IntroducerCommand struct {
-	Name       string `short:"n" long:"name" description:"Name of this introducer."`
-	OSX        string `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
-	PersistKey bool   `short:"p" long:"persist-key" description:"Persist the key and re-use it rather than generating a new key every run."`
+	Name        string  `short:"n" long:"name" description:"Name of this introducer."`
+	OSX         string  `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
+	PersistKey  bool    `short:"p" long:"persist-key" description:"Persist the key and re-use it rather than generating a new key every run."`
+	LevelSticky float64 `short:"s" long:"level-sticky" description:"Level at which notifications should 'stick'." default:"3"`
 }
 
 var introducerCommand IntroducerCommand
@@ -114,7 +115,9 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 			copyToClipboard(strings.Join(conn.Keys, ","))
 			displayNotice("Copied key.", false)
 		} else if message.Contents["type"].(string) == "Notification" {
-			displayNotice(message.Contents["message"].(string), true)
+			level := message.Contents["level"].(float64)
+
+			displayNotice(message.Contents["message"].(string), level >= introducerCommand.LevelSticky)
 
 			data := map[string]interface{}{
 				"type":   "NotificationDisplayed",
