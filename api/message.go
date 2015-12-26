@@ -253,6 +253,7 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
 					decryptedOk = true
 					logger.Debugf("Successfully decrypted with %s...", key[0:10])
+					message = []byte(decrypted)
 					rawData = rd
 				}
 
