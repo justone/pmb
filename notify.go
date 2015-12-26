@@ -71,6 +71,8 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 
 		if len(message) == 0 {
 			message = fmt.Sprintf("Command [%s] completed %s.", strings.Join(args, " "), result)
+		} else {
+			message = fmt.Sprintf("%s. Command completed %s.", message, result)
 		}
 	} else if notifyCommand.Pid != 0 {
 
