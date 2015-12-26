@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
@@ -68,13 +69,13 @@ func runPluginOnce(conn *pmb.Connection, message pmb.Message, args []string) {
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		logger.Debugf("error getting stdin pipe: %s", err)
+		logrus.Debugf("error getting stdin pipe: %s", err)
 		return
 	}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		logger.Debugf("error getting stdout pipe: %s", err)
+		logrus.Debugf("error getting stdout pipe: %s", err)
 		return
 	}
 	err = cmd.Start()
@@ -82,13 +83,13 @@ func runPluginOnce(conn *pmb.Connection, message pmb.Message, args []string) {
 	stdoutBuffered := bufio.NewReader(stdout)
 
 	if err != nil {
-		logger.Debugf("error creating buffered reader: %s", err)
+		logrus.Debugf("error creating buffered reader: %s", err)
 		return
 	}
 
 	_, err = stdin.Write([]byte(message.Raw))
 	if err != nil {
-		logger.Debugf("error writing to plugin process: %s", err)
+		logrus.Debugf("error writing to plugin process: %s", err)
 		return
 	}
 	stdin.Close()
@@ -99,15 +100,15 @@ func runPluginOnce(conn *pmb.Connection, message pmb.Message, args []string) {
 			break
 		}
 
-		logger.Debugf("Rec: %s\n", line)
+		logrus.Debugf("Rec: %s\n", line)
 
 		var rawData interface{}
 		err = json.Unmarshal(line, &rawData)
 		if err != nil {
-			logger.Debugf("Unable to unmarshal JSON data, skipping.")
+			logrus.Debugf("Unable to unmarshal JSON data, skipping.")
 		} else {
 
-			logger.Debugf("data: %s", rawData)
+			logrus.Debugf("data: %s", rawData)
 			data := rawData.(map[string]interface{})
 
 			conn.Out <- pmb.Message{Contents: data}

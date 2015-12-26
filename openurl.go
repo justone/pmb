@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
@@ -30,7 +31,7 @@ func (x *OpenURLCommand) Execute(args []string) error {
 		}
 		data = string(stdin)
 	}
-	logger.Debugf("URL to open: %s", data)
+	logrus.Debugf("URL to open: %s", data)
 
 	id := generateRandomID("openURL")
 

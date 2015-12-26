@@ -9,10 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/loggo/loggo"
+	"github.com/Sirupsen/logrus"
 )
-
-var logger = loggo.GetLogger("api")
 
 type PMBConfig map[string]string
 
@@ -40,7 +38,7 @@ func getConfig(uris map[string]string) PMBConfig {
 	} else {
 		config["key"] = ""
 	}
-	logger.Debugf("Config: %s", config)
+	logrus.Debugf("Config: %s", config)
 
 	return config
 }
@@ -48,7 +46,7 @@ func getConfig(uris map[string]string) PMBConfig {
 func (pmb *PMB) ConnectIntroducer(id string) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
-		logger.Debugf("calling connectWithKey")
+		logrus.Debugf("calling connectWithKey")
 		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], true, true)
 	}
 
@@ -58,7 +56,7 @@ func (pmb *PMB) ConnectIntroducer(id string) (*Connection, error) {
 func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
-		logger.Debugf("calling connectWithKey")
+		logrus.Debugf("calling connectWithKey")
 		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], true, checkKey)
 	}
 
@@ -68,7 +66,7 @@ func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
 func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
-		logger.Debugf("calling connectWithKey")
+		logrus.Debugf("calling connectWithKey")
 		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer, true)
 	}
 
@@ -102,7 +100,7 @@ func copyKey(URI string, id string) (*Connection, error) {
 }
 
 func connectWithKey(URI string, id string, key string, isIntroducer bool, checkKey bool) (*Connection, error) {
-	logger.Debugf("calling connect")
+	logrus.Debugf("calling connect")
 	conn, err := connect(URI, id)
 	if err != nil {
 		return nil, err
@@ -147,7 +145,7 @@ func connectWithKey(URI string, id string, key string, isIntroducer bool, checkK
 
 			err = testAuth(conn, id)
 			if err != nil {
-				logger.Warningf("Error with key: %s", err)
+				logrus.Warningf("Error with key: %s", err)
 			} else {
 				break
 			}

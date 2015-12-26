@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 	"github.com/kardianos/osext"
 )
@@ -17,16 +18,16 @@ func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
 
 	var err error
 
-	logger.Debugf("Handling %s with args of %s\n", command, arguments)
+	logrus.Debugf("Handling %s with args of %s\n", command, arguments)
 
 	// launch agent name
 	args := strings.Split(arguments, " ")
 	agentName := fmt.Sprintf("org.endot.pmb.%s", args[0])
-	logger.Debugf("Name of launchagent: %s", agentName)
+	logrus.Debugf("Name of launchagent: %s", agentName)
 
 	// figure out launch agent config path
 	launchAgentFile := fmt.Sprintf("%s/Library/LaunchAgents/%s.plist", os.Getenv("HOME"), agentName)
-	logger.Debugf("launchagent file: %s\n", launchAgentFile)
+	logrus.Debugf("launchagent file: %s\n", launchAgentFile)
 
 	// create launch data
 	executable, err := osext.Executable()
@@ -124,7 +125,7 @@ func start(launchAgentFile string, agentName string) error {
 		return err
 	} else {
 		// launch agent was already loaded
-		logger.Infof("Already running")
+		logrus.Infof("Already running")
 	}
 
 	return nil
@@ -143,7 +144,7 @@ func stop(launchAgentFile string, agentName string) error {
 		}
 	} else if _, ok := err.(*exec.ExitError); ok {
 		// launch agent wasn't already loaded
-		logger.Infof("Already stopped")
+		logrus.Infof("Already stopped")
 	} else {
 		// some error running the list command
 		return err
@@ -159,7 +160,7 @@ func configure(launchAgentFile string, config string) error {
 		return err
 	}
 
-	logger.Debugf("Created %s: %s", launchAgentFile, config)
+	logrus.Debugf("Created %s: %s", launchAgentFile, config)
 
 	return nil
 }
@@ -206,6 +207,6 @@ func generateLaunchConfig(launchData interface{}) string {
 }
 
 func unconfigure(launchAgentFile string) error {
-	logger.Debugf("Removing %s", launchAgentFile)
+	logrus.Debugf("Removing %s", launchAgentFile)
 	return os.Remove(launchAgentFile)
 }

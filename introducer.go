@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
@@ -31,7 +32,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 		os.Setenv("PMB_KEY", generateRandomString(32))
 	}
 
-	logger.Debugf("calling GetPMB")
+	logrus.Debugf("calling GetPMB")
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
 	var name string
@@ -60,13 +61,13 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 		return handleOSXCommand(bus, introducerCommand.OSX, strings.Join(args, " "))
 	} else {
-		logger.Debugf("calling GetConnection")
+		logrus.Debugf("calling GetConnection")
 		conn, err := bus.ConnectIntroducer(name)
 		if err != nil {
 			return err
 		}
 
-		logger.Debugf("calling runIntroducer")
+		logrus.Debugf("calling runIntroducer")
 		return runIntroducer(bus, conn)
 	}
 }
@@ -79,7 +80,7 @@ func init() {
 }
 
 func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
-	logger.Infof("Introducer ready.")
+	logrus.Infof("Introducer ready.")
 	for {
 		message := <-conn.In
 		if message.Contents["type"].(string) == "CopyData" {

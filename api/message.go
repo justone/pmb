@@ -1,6 +1,7 @@
 package pmb
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/streadway/amqp"
 
 	"crypto/aes"
@@ -49,7 +50,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix}
 
-	logger.Debugf("calling listen/send")
+	logrus.Debugf("calling listen/send")
 	go listenToAMQP(conn, done, id)
 	go sendToAMQP(conn, done, id)
 
@@ -65,7 +66,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
-	logger.Debugf("calling setupSend")
+	logrus.Debugf("calling setupSend")
 	ch, err := setupSend(pmbConn.uri, pmbConn.prefix, id)
 
 	if err != nil {
@@ -89,7 +90,7 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 		message.Contents["ip"] = ip
 		message.Contents["sent"] = time.Now().Format(time.RFC3339)
 
-		logger.Debugf("Sending message: %s", message.Contents)
+		logrus.Debugf("Sending message: %s", message.Contents)
 
 		json, err := json.Marshal(message.Contents)
 		if err != nil {
@@ -99,12 +100,12 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 
 		var bodies [][]byte
 		if len(pmbConn.Keys) > 0 {
-			logger.Debugf("Encrypting message...")
+			logrus.Debugf("Encrypting message...")
 			for _, key := range pmbConn.Keys {
 				encrypted, err := encrypt([]byte(key), string(json))
 
 				if err != nil {
-					logger.Warningf("Unable to encrypt message!")
+					logrus.Warningf("Unable to encrypt message!")
 					continue
 				}
 
@@ -115,7 +116,7 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 		}
 
 		for _, body := range bodies {
-			logger.Debugf("Sending raw message: %s", string(body))
+			logrus.Debugf("Sending raw message: %s", string(body))
 			err = ch.Publish(
 				fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
 				"test", // routing key
@@ -127,16 +128,16 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 				})
 
 			if err != nil {
-				logger.Warningf("Send connection fail reconnecting...", err)
+				logrus.Warningf("Send connection fail reconnecting...", err)
 
 				// attempt to reconnect forever
 				ch, err = setupSendForever(pmbConn.uri, pmbConn.prefix, id)
 
 				if err != nil {
-					logger.Criticalf("Unable to reconnect, exiting... %s", err)
+					logrus.Errorf("Unable to reconnect, exiting... %s", err)
 					return
 				} else {
-					logger.Infof("Reconnected.")
+					logrus.Infof("Reconnected.")
 					err = ch.Publish(
 						fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
 						"test", // routing key
@@ -179,9 +180,9 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 			cfg.InsecureSkipVerify = true
 		}
 
-		logger.Debugf("calling DialTLS")
+		logrus.Debugf("calling DialTLS")
 		conn, err = amqp.DialTLS(uri, cfg)
-		logger.Debugf("Connection obtained")
+		logrus.Debugf("Connection obtained")
 	} else {
 		conn, err = amqp.Dial(uri)
 	}
@@ -190,13 +191,13 @@ func connectToAMQP(uri string) (*amqp.Connection, error) {
 		return nil, err
 	}
 
-	//logger.Debugf("Conn: ", conn)
+	//logrus.Debugf("Conn: ", conn)
 	return conn, nil
 }
 
 func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
-	logger.Debugf("calling setupListen")
+	logrus.Debugf("calling setupListen")
 	msgs, err := setupListen(pmbConn.uri, pmbConn.prefix, id)
 
 	if err != nil {
@@ -210,33 +211,33 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 	for {
 		delivery, ok := <-msgs
 		if !ok {
-			logger.Warningf("Listen connection fail, reconnecting...")
+			logrus.Warningf("Listen connection fail, reconnecting...")
 
 			// attempt to reconnect forever
 			msgs, err = setupListenForever(pmbConn.uri, pmbConn.prefix, id)
 
 			if err != nil {
-				logger.Criticalf("Unable to reconnect, exiting... %s", err)
+				logrus.Errorf("Unable to reconnect, exiting... %s", err)
 				return
 			} else {
-				logger.Infof("Reconnected.")
+				logrus.Infof("Reconnected.")
 				continue
 			}
 
 		}
-		logger.Debugf("Raw message received: %s", string(delivery.Body))
+		logrus.Debugf("Raw message received: %s", string(delivery.Body))
 
 		var message []byte
 		var rawData interface{}
 		if delivery.Body[0] != '{' {
-			logger.Debugf("Decrypting message...")
+			logrus.Debugf("Decrypting message...")
 			if len(pmbConn.Keys) > 0 {
-				logger.Debugf("Attemping to decrypt with %d keys...", len(pmbConn.Keys))
+				logrus.Debugf("Attemping to decrypt with %d keys...", len(pmbConn.Keys))
 				decryptedOk := false
 				for _, key := range pmbConn.Keys {
 					decrypted, err := decrypt([]byte(key), string(delivery.Body))
 					if err != nil {
-						logger.Warningf("Unable to decrypt message!")
+						logrus.Warningf("Unable to decrypt message!")
 						continue
 					}
 
@@ -247,12 +248,12 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 						// only report this error at debug level.  When
 						// multiple keys exist, this will always print
 						// something, and it's not error worthy
-						logger.Debugf("Unable to decrypt message (bad key)!")
+						logrus.Debugf("Unable to decrypt message (bad key)!")
 						continue
 					}
 
 					decryptedOk = true
-					logger.Debugf("Successfully decrypted with %s...", key[0:10])
+					logrus.Debugf("Successfully decrypted with %s...", key[0:10])
 					message = []byte(decrypted)
 					rawData = rd
 				}
@@ -262,13 +263,13 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 				}
 
 			} else {
-				logger.Warningf("Encrypted message and no key!")
+				logrus.Warningf("Encrypted message and no key!")
 			}
 		} else {
 			message = delivery.Body
 			err := json.Unmarshal(message, &rawData)
 			if err != nil {
-				logger.Debugf("Unable to unmarshal JSON data, skipping.")
+				logrus.Debugf("Unable to unmarshal JSON data, skipping.")
 				continue
 			}
 		}
@@ -279,10 +280,10 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
 		// hide messages from ourselves
 		if senderId != id {
-			logger.Debugf("Message received: %s", data)
+			logrus.Debugf("Message received: %s", data)
 			receiver <- Message{Contents: data, Raw: string(message)}
 		} else {
-			logger.Debugf("Message received but ignored: %s", data)
+			logrus.Debugf("Message received but ignored: %s", data)
 		}
 	}
 
@@ -297,13 +298,13 @@ func setupSendForever(uri string, prefix string, id string) (*amqp.Channel, erro
 			return ch, nil
 		}
 
-		logger.Warningf("Send setup failed, sleeping and then re-trying")
+		logrus.Warningf("Send setup failed, sleeping and then re-trying")
 		time.Sleep(1 * time.Second)
 	}
 }
 
 func setupSend(uri string, prefix string, id string) (*amqp.Channel, error) {
-	logger.Debugf("calling connectToAMQP")
+	logrus.Debugf("calling connectToAMQP")
 	conn, err := connectToAMQP(uri)
 	if err != nil {
 		return nil, err
@@ -331,14 +332,14 @@ func setupListenForever(uri string, prefix string, id string) (<-chan amqp.Deliv
 			return msgs, nil
 		}
 
-		logger.Warningf("Listen setup failed, sleeping and then re-trying")
+		logrus.Warningf("Listen setup failed, sleeping and then re-trying")
 		time.Sleep(1 * time.Second)
 	}
 }
 
 func setupListen(uri string, prefix string, id string) (<-chan amqp.Delivery, error) {
 
-	logger.Debugf("calling connectToAMQP")
+	logrus.Debugf("calling connectToAMQP")
 	conn, err := connectToAMQP(uri)
 	if err != nil {
 		return nil, err

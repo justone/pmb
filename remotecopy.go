@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
@@ -30,7 +31,7 @@ func (x *RemoteCopyCommand) Execute(args []string) error {
 		}
 		data = string(stdin)
 	}
-	logger.Debugf("Data to copy: %s", data)
+	logrus.Debugf("Data to copy: %s", data)
 
 	id := generateRandomID("remoteCopy")
 

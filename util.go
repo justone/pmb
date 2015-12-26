@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
 var charactersForRandom = []byte("1234567890abcdefghijklmnopqrstuvwxyz")
@@ -26,7 +28,7 @@ func urisFromOpts(opts GlobalOptions) map[string]string {
 
 func copyToClipboard(data string) error {
 
-	logger.Infof("copy data: %s\n", strings.Replace(truncate(data, 50), "\n", "\\n", -1))
+	logrus.Infof("copy data: %s\n", strings.Replace(truncate(data, 50), "\n", "\\n", -1))
 
 	var cmd *exec.Cmd
 
@@ -76,25 +78,25 @@ func displayNotice(message string, sticky bool) error {
 	if !sticky {
 		stickyText = "not sticky"
 	}
-	logger.Infof("display message: %s (%s)\n", message, stickyText)
+	logrus.Infof("display message: %s (%s)\n", message, stickyText)
 
 	var cmd *exec.Cmd
 
 	path := os.Getenv("PATH")
-	logger.Debugf("looking for notifiers in path: %s\n", path)
+	logrus.Debugf("looking for notifiers in path: %s\n", path)
 	if _, err := exec.LookPath("growlnotify"); err == nil {
 		cmdParts := []string{"growlnotify", "-m", message}
 		if sticky {
 			cmdParts = append(cmdParts, "-s")
 		}
 
-		logger.Debugf("Using growlnotify for notification.")
+		logrus.Debugf("Using growlnotify for notification.")
 		cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
 	} else if _, err := exec.LookPath("tmux"); err == nil {
 		cmd = exec.Command("tmux", "display-message", message)
-		logger.Debugf("Using tmux for notification.")
+		logrus.Debugf("Using tmux for notification.")
 	} else {
-		logger.Warningf("Unable to display notice.")
+		logrus.Warningf("Unable to display notice.")
 		return nil
 	}
 
