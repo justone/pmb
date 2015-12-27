@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -80,6 +81,20 @@ func (pmb *PMB) CopyKey(id string) (*Connection, error) {
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
+}
+
+var charactersForRandom = []byte("1234567890abcdefghijklmnopqrstuvwxyz")
+
+func GenerateRandomString(length int) string {
+	random := make([]byte, length)
+	for i, _ := range random {
+		random[i] = charactersForRandom[rand.Intn(len(charactersForRandom))]
+	}
+	return string(random)
+}
+
+func GenerateRandomID(prefix string) string {
+	return fmt.Sprintf("%s-%s", prefix, GenerateRandomString(12))
 }
 
 func copyKey(URI string, id string) (*Connection, error) {

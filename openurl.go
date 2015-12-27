@@ -33,7 +33,7 @@ func (x *OpenURLCommand) Execute(args []string) error {
 	}
 	logrus.Debugf("URL to open: %s", data)
 
-	id := generateRandomID("openURL")
+	id := pmb.GenerateRandomID("openURL")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {

@@ -11,7 +11,7 @@ var copyKeyCommand CopyKeyCommand
 func (x *CopyKeyCommand) Execute(args []string) error {
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	id := generateRandomID("copyKey")
+	id := pmb.GenerateRandomID("copyKey")
 
 	_, err := bus.CopyKey(id)
 	if err != nil {

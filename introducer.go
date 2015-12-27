@@ -24,12 +24,12 @@ func (x *IntroducerCommand) Execute(args []string) error {
 		keyStore := fmt.Sprintf("%s/.pmb_key", os.Getenv("HOME"))
 		key, err := ioutil.ReadFile(keyStore)
 		if err != nil {
-			key = []byte(generateRandomString(32))
+			key = []byte(pmb.GenerateRandomString(32))
 			ioutil.WriteFile(keyStore, key, 0600)
 		}
 		os.Setenv("PMB_KEY", string(key))
 	} else {
-		os.Setenv("PMB_KEY", generateRandomString(32))
+		os.Setenv("PMB_KEY", pmb.GenerateRandomString(32))
 	}
 
 	logrus.Debugf("calling GetPMB")
@@ -42,7 +42,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 
 		hostname, err := os.Hostname()
 		if err != nil {
-			name = fmt.Sprintf("introducer-unknown-hostname-%s", generateRandomString(10))
+			name = fmt.Sprintf("introducer-unknown-hostname-%s", pmb.GenerateRandomString(10))
 		} else {
 			name = fmt.Sprintf("introducer-%s", hostname)
 		}

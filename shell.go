@@ -17,7 +17,7 @@ var shellCommand ShellCommand
 func (x *ShellCommand) Execute(args []string) error {
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	id := generateRandomID("shell")
+	id := pmb.GenerateRandomID("shell")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {

@@ -16,7 +16,7 @@ var getKeyCommand GetKeyCommand
 func (x *GetKeyCommand) Execute(args []string) error {
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	id := generateRandomID("getKey")
+	id := pmb.GenerateRandomID("getKey")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {

@@ -35,7 +35,7 @@ func (x *NotifyCommand) Execute(args []string) error {
 		}
 	}
 
-	id := generateRandomID("notify")
+	id := pmb.GenerateRandomID("notify")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {
@@ -98,7 +98,7 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		}
 	}
 
-	notificationId := generateRandomID("notify")
+	notificationId := pmb.GenerateRandomID("notify")
 	notifyData := map[string]interface{}{
 		"type":            "Notification",
 		"notification-id": notificationId,

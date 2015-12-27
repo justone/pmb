@@ -43,7 +43,7 @@ func (x *NotifyMobileCommand) Execute(args []string) error {
 		return fmt.Errorf("Pushover userKey not found, specify '--userKey' or set PMB_PUSHOVER_USERKEY")
 	}
 
-	id := generateRandomID("notifyMobile")
+	id := pmb.GenerateRandomID("notifyMobile")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {

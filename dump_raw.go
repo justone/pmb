@@ -15,7 +15,7 @@ var dumpRawCommand DumpRawCommand
 func (x *DumpRawCommand) Execute(args []string) error {
 	bus := pmb.GetPMB(urisFromOpts(globalOptions))
 
-	id := generateRandomID("dumpRaw")
+	id := pmb.GenerateRandomID("dumpRaw")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {

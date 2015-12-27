@@ -33,7 +33,7 @@ func (x *RemoteCopyCommand) Execute(args []string) error {
 	}
 	logrus.Debugf("Data to copy: %s", data)
 
-	id := generateRandomID("remoteCopy")
+	id := pmb.GenerateRandomID("remoteCopy")
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {

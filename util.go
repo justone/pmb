@@ -12,8 +12,6 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-var charactersForRandom = []byte("1234567890abcdefghijklmnopqrstuvwxyz")
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -105,16 +103,4 @@ func displayNotice(message string, sticky bool) error {
 		return err
 	}
 	return nil
-}
-
-func generateRandomString(length int) string {
-	random := make([]byte, length)
-	for i, _ := range random {
-		random[i] = charactersForRandom[rand.Intn(len(charactersForRandom))]
-	}
-	return string(random)
-}
-
-func generateRandomID(prefix string) string {
-	return fmt.Sprintf("%s-%s", prefix, generateRandomString(12))
 }

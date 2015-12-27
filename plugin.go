@@ -33,7 +33,7 @@ func (x *PluginCommand) Execute(args []string) error {
 		return fmt.Errorf("Not implemented yet.")
 	}
 
-	id := generateRandomID(fmt.Sprintf("plugin-%s", args[0]))
+	id := pmb.GenerateRandomID(fmt.Sprintf("plugin-%s", args[0]))
 
 	conn, err := bus.ConnectClient(id, !globalOptions.TrustKey)
 	if err != nil {
