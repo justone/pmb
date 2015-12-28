@@ -98,29 +98,7 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		}
 	}
 
-	notificationId := pmb.GenerateRandomID("notify")
-	notifyData := map[string]interface{}{
-		"type":            "Notification",
-		"notification-id": notificationId,
-		"message":         message,
-		"level":           notifyCommand.Level,
-	}
-	conn.Out <- pmb.Message{Contents: notifyData}
-
-	timeout := time.After(2 * time.Second)
-	for {
-		select {
-		case message := <-conn.In:
-			data := message.Contents
-			if data["type"].(string) == "NotificationDisplayed" && data["origin"].(string) == id {
-				return nil
-			}
-		case _ = <-timeout:
-			return fmt.Errorf("Unable to determine if message was displayed...")
-		}
-	}
-
-	return nil
+	return pmb.SendNotificationWithLevel(conn, message, notifyCommand.Level)
 }
 
 // TODO: use a go-based library for this, maybe gopsutil

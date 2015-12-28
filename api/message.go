@@ -29,6 +29,7 @@ type Connection struct {
 	uri    string
 	prefix string
 	Keys   []string
+	Id     string
 }
 
 var topicSuffix = "pmb"
@@ -48,7 +49,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 	done := make(chan error)
 
-	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix}
+	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix, Id: id}
 
 	logrus.Debugf("calling listen/send")
 	go listenToAMQP(conn, done, id)

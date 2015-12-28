@@ -97,6 +97,34 @@ func GenerateRandomID(prefix string) string {
 	return fmt.Sprintf("%s-%s", prefix, GenerateRandomString(12))
 }
 
+func SendNotification(conn *Connection, message string) error {
+	return SendNotificationWithLevel(conn, message, 3)
+}
+
+func SendNotificationWithLevel(conn *Connection, message string, level float64) error {
+	notificationId := GenerateRandomID("notify")
+	notifyData := map[string]interface{}{
+		"type":            "Notification",
+		"notification-id": notificationId,
+		"message":         message,
+		"level":           level,
+	}
+	conn.Out <- Message{Contents: notifyData}
+
+	timeout := time.After(2 * time.Second)
+	for {
+		select {
+		case message := <-conn.In:
+			data := message.Contents
+			if data["type"].(string) == "NotificationDisplayed" && data["origin"].(string) == conn.Id {
+				return nil
+			}
+		case _ = <-timeout:
+			return fmt.Errorf("Unable to determine if message was displayed...")
+		}
+	}
+}
+
 func copyKey(URI string, id string) (*Connection, error) {
 	conn, err := connect(URI, id)
 	if err != nil {
