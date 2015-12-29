@@ -33,7 +33,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 	}
 
 	logrus.Debugf("calling GetPMB")
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	var name string
 	if len(introducerCommand.Name) > 0 {

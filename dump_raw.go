@@ -13,7 +13,7 @@ type DumpRawCommand struct {
 var dumpRawCommand DumpRawCommand
 
 func (x *DumpRawCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	id := pmb.GenerateRandomID("dumpRaw")
 

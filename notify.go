@@ -20,7 +20,7 @@ type NotifyCommand struct {
 var notifyCommand NotifyCommand
 
 func (x *NotifyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	if len(args) == 0 && len(notifyCommand.Message) == 0 && notifyCommand.Pid == 0 {
 		return fmt.Errorf("A message is required")

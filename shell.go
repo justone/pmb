@@ -15,7 +15,7 @@ type ShellCommand struct {
 var shellCommand ShellCommand
 
 func (x *ShellCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	id := pmb.GenerateRandomID("shell")
 

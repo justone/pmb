@@ -14,7 +14,7 @@ type GetKeyCommand struct {
 var getKeyCommand GetKeyCommand
 
 func (x *GetKeyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	id := pmb.GenerateRandomID("getKey")
 

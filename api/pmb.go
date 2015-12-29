@@ -19,17 +19,17 @@ type PMB struct {
 	config PMBConfig
 }
 
-func GetPMB(uris map[string]string) *PMB {
-	config := getConfig(uris)
+func GetPMB(primaryURI string) *PMB {
+	config := getConfig(primaryURI)
 
 	return &PMB{config: config}
 }
 
-func getConfig(uris map[string]string) PMBConfig {
+func getConfig(primaryURI string) PMBConfig {
 	config := make(PMBConfig)
 
-	if len(uris["primary"]) > 0 {
-		config["primary"] = uris["primary"]
+	if len(primaryURI) > 0 {
+		config["primary"] = primaryURI
 	} else if primaryURI := os.Getenv("PMB_PRIMARY_URI"); len(primaryURI) > 0 {
 		config["primary"] = primaryURI
 	}

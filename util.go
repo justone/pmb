@@ -16,14 +16,6 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func urisFromOpts(opts GlobalOptions) map[string]string {
-
-	uris := make(map[string]string)
-	uris["primary"] = opts.Primary
-
-	return uris
-}
-
 func copyToClipboard(data string) error {
 
 	logrus.Infof("copy data: %s\n", strings.Replace(truncate(data, 50), "\n", "\\n", -1))

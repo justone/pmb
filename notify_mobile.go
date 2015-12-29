@@ -19,7 +19,7 @@ type NotifyMobileCommand struct {
 var notifyMobileCommand NotifyMobileCommand
 
 func (x *NotifyMobileCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	// get necessary Pushover parameters from environment or options
 	var token string

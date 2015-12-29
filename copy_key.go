@@ -9,7 +9,7 @@ type CopyKeyCommand struct {
 var copyKeyCommand CopyKeyCommand
 
 func (x *CopyKeyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	id := pmb.GenerateRandomID("copyKey")
 

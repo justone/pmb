@@ -19,7 +19,7 @@ type PluginCommand struct {
 var pluginCommand PluginCommand
 
 func (x *PluginCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(urisFromOpts(globalOptions))
+	bus := pmb.GetPMB(globalOptions.Primary)
 
 	if len(args) == 0 {
 		return fmt.Errorf("Please specify a command (with args).")
