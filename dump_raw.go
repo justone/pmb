@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
@@ -36,7 +35,7 @@ func runDumpRaw(conn *pmb.Connection) error {
 
 	for {
 		message := <-conn.In
-		fmt.Println(message.Raw)
+		logrus.Infof(message.Raw)
 	}
 
 	return nil

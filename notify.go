@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
@@ -62,22 +63,26 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 
+		command := strings.Join(args, " ")
+		logrus.Infof("Waiting for command '%s' to finish...\n", command)
+
 		err := cmd.Run()
 
 		result := "successfully"
 		if err != nil {
 			result = fmt.Sprintf("with error '%s'", err.Error())
 		}
+		logrus.Infof("Process complete.")
 
 		if len(message) == 0 {
-			message = fmt.Sprintf("Command [%s] completed %s.", strings.Join(args, " "), result)
+			message = fmt.Sprintf("Command [%s] completed %s.", command, result)
 		} else {
 			message = fmt.Sprintf("%s. Command completed %s.", message, result)
 		}
 	} else if notifyCommand.Pid != 0 {
 
 		notifyExecutable := ""
-		fmt.Printf("Waiting for pid %d to finish...\n", notifyCommand.Pid)
+		logrus.Infof("Waiting for pid %d to finish...\n", notifyCommand.Pid)
 		for {
 			found, exec := findProcess(notifyCommand.Pid)
 
@@ -87,6 +92,7 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 			}
 
 			if !found {
+				logrus.Infof("Process complete.")
 				break
 			} else {
 				time.Sleep(1 * time.Second)

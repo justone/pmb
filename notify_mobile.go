@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 	"github.com/thorduri/pushover"
 )
@@ -62,23 +63,23 @@ func init() {
 
 func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey string) error {
 
-	fmt.Printf("always: %f, unacknowledged: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged)
+	logrus.Debugf("always: %f, unacknowledged: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged)
 
 	for {
 		message := <-conn.In
 		if message.Contents["type"].(string) == "Notification" {
 			level := message.Contents["level"].(float64)
 			if level >= notifyMobileCommand.LevelAlways {
-				fmt.Println("Important notification found, sending Pushover")
+				logrus.Infof("Important notification found, sending Pushover")
 				err := sendPushover(token, userKey, message.Contents["message"].(string))
 				if err != nil {
-					fmt.Println("Error sending Pushover notification: ", err)
+					logrus.Warnf("Error sending Pushover notification: %s", err)
 				}
 			} else if level >= notifyMobileCommand.LevelUnacknowledged {
-				fmt.Println("Potentially unacknowledged notification found, unfortunately I can't do anything with it.")
+				logrus.Infof("Potentially unacknowledged notification found, unfortunately I can't do anything with it.")
 				// TODO: detect if not properly notified elsewhere and send Pushover
 			} else {
-				fmt.Println("Unimportant notification found, dropping on the floor.")
+				logrus.Infof("Unimportant notification found, dropping on the floor.")
 			}
 		}
 	}
