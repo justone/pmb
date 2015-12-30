@@ -2,19 +2,13 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func copyToClipboard(data string) error {
 

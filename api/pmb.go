@@ -85,7 +85,18 @@ func (pmb *PMB) CopyKey(id string) (*Connection, error) {
 
 var charactersForRandom = []byte("1234567890abcdefghijklmnopqrstuvwxyz")
 
+var randSeeded = false
+
+func ensureRandSeeded() {
+	if !randSeeded {
+		logrus.Debugf("Initializing rand")
+		rand.Seed(time.Now().UnixNano())
+		randSeeded = true
+	}
+}
+
 func GenerateRandomString(length int) string {
+	ensureRandSeeded()
 	random := make([]byte, length)
 	for i, _ := range random {
 		random[i] = charactersForRandom[rand.Intn(len(charactersForRandom))]
