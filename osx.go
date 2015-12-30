@@ -18,7 +18,7 @@ func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
 
 	var err error
 
-	logrus.Debugf("Handling %s with args of %s\n", command, arguments)
+	logrus.Debugf("Handling %s with args of %s", command, arguments)
 
 	// launch agent name
 	args := strings.Split(arguments, " ")
@@ -27,7 +27,7 @@ func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
 
 	// figure out launch agent config path
 	launchAgentFile := fmt.Sprintf("%s/Library/LaunchAgents/%s.plist", os.Getenv("HOME"), agentName)
-	logrus.Debugf("launchagent file: %s\n", launchAgentFile)
+	logrus.Debugf("launchagent file: %s", launchAgentFile)
 
 	// create launch data
 	executable, err := osext.Executable()

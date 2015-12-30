@@ -100,7 +100,7 @@ func runPluginOnce(conn *pmb.Connection, message pmb.Message, args []string) {
 			break
 		}
 
-		logrus.Debugf("Rec: %s\n", line)
+		logrus.Debugf("Rec: %s", line)
 
 		var rawData interface{}
 		err = json.Unmarshal(line, &rawData)

@@ -18,7 +18,7 @@ func init() {
 
 func copyToClipboard(data string) error {
 
-	logrus.Infof("copy data: %s\n", strings.Replace(truncate(data, 50), "\n", "\\n", -1))
+	logrus.Infof("copy data: %s", strings.Replace(truncate(data, 50), "\n", "\\n", -1))
 
 	var cmd *exec.Cmd
 
@@ -68,12 +68,12 @@ func displayNotice(message string, sticky bool) error {
 	if !sticky {
 		stickyText = "not sticky"
 	}
-	logrus.Infof("display message: %s (%s)\n", message, stickyText)
+	logrus.Infof("display message: %s (%s)", message, stickyText)
 
 	var cmd *exec.Cmd
 
 	path := os.Getenv("PATH")
-	logrus.Debugf("looking for notifiers in path: %s\n", path)
+	logrus.Debugf("looking for notifiers in path: %s", path)
 	if _, err := exec.LookPath("growlnotify"); err == nil {
 		cmdParts := []string{"growlnotify", "-m", message}
 		if sticky {
