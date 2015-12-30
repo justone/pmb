@@ -104,7 +104,8 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 		}
 	}
 
-	return pmb.SendNotificationWithLevel(conn, message, notifyCommand.Level)
+	note := pmb.Notification{Message: message, Level: notifyCommand.Level}
+	return pmb.SendNotification(conn, note)
 }
 
 // TODO: use a go-based library for this, maybe gopsutil

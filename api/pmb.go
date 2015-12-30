@@ -19,6 +19,12 @@ type PMB struct {
 	config PMBConfig
 }
 
+type Notification struct {
+	Message string
+	URL     string
+	Level   float64
+}
+
 func GetPMB(primaryURI string) *PMB {
 	config := getConfig(primaryURI)
 
@@ -108,17 +114,14 @@ func GenerateRandomID(prefix string) string {
 	return fmt.Sprintf("%s-%s", prefix, GenerateRandomString(12))
 }
 
-func SendNotification(conn *Connection, message string) error {
-	return SendNotificationWithLevel(conn, message, 3)
-}
-
-func SendNotificationWithLevel(conn *Connection, message string, level float64) error {
+func SendNotification(conn *Connection, note Notification) error {
 	notificationId := GenerateRandomID("notify")
 	notifyData := map[string]interface{}{
 		"type":            "Notification",
 		"notification-id": notificationId,
-		"message":         message,
-		"level":           level,
+		"message":         note.Message,
+		"level":           note.Level,
+		"url":             note.URL,
 	}
 	conn.Out <- Message{Contents: notifyData}
 
