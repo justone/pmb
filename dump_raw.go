@@ -1,12 +1,15 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
+	"bytes"
+	"encoding/json"
+	"fmt"
+
 	"github.com/justone/pmb/api"
 )
 
 type DumpRawCommand struct {
-	// nothing yet
+	Pretty bool `short:"p" long:"pretty" description:"Pretty print message contents."`
 }
 
 var dumpRawCommand DumpRawCommand
@@ -35,7 +38,19 @@ func runDumpRaw(conn *pmb.Connection) error {
 
 	for {
 		message := <-conn.In
-		logrus.Infof(message.Raw)
+
+		if dumpRawCommand.Pretty {
+			var out bytes.Buffer
+			err := json.Indent(&out, []byte(message.Raw), "", "  ")
+
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Printf("%s\n", out.Bytes())
+			}
+		} else {
+			fmt.Printf("%s\n", message.Raw)
+		}
 	}
 
 	return nil
