@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -119,10 +121,15 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 			level := message.Contents["level"].(float64)
 
 			displayNotice(message.Contents["message"].(string), level >= introducerCommand.LevelSticky)
+			ssRunning, _ := screensaverRunning()
 
 			data := map[string]interface{}{
-				"type":   "NotificationDisplayed",
-				"origin": message.Contents["id"].(string),
+				"type":            "NotificationDisplayed",
+				"origin":          message.Contents["id"].(string),
+				"notification-id": message.Contents["notification-id"].(string),
+				"level":           level,
+				"message":         message.Contents["message"].(string),
+				"screenSaverOn":   ssRunning,
 			}
 			conn.Out <- pmb.Message{Contents: data}
 		}
@@ -130,4 +137,30 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 	}
 
 	return nil
+}
+
+func screensaverRunning() (bool, error) {
+	if runtime.GOOS == "darwin" {
+		return processRunning("ScreenSaverEngine")
+	}
+
+	return false, nil
+}
+
+// TODO: use a go-based library for this
+func processRunning(name string) (bool, error) {
+
+	procCmd := exec.Command("pgrep", name)
+
+	err := procCmd.Run()
+
+	if _, ok := err.(*exec.ExitError); ok {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	} else {
+		return true, nil
+	}
+
+	return false, nil
 }
