@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
@@ -15,6 +16,7 @@ type NotifyMobileCommand struct {
 	Provider            string  `short:"p" long:"provider" description:"Mobile notification provider (only Pushover so far)"`
 	LevelAlways         float64 `short:"a" long:"level-always" description:"Level at which always send to Pushover." default:"4"`
 	LevelUnacknowledged float64 `short:"u" long:"level-unacknowledged" description:"Level at which unacknowledged are sent to Pushover." default:"2"`
+	LevelUnseen         float64 `short:"s" long:"level-unseen" description:"Level at which unseen are sent to Pushover." default:"2"`
 }
 
 var notifyMobileCommand NotifyMobileCommand
@@ -61,25 +63,99 @@ func init() {
 		&notifyMobileCommand)
 }
 
+func waitForComplete(message pmb.Message, complete chan bool, reapChan chan string, token string, userKey string) {
+	notificationId := message.Contents["notification-id"].(string)
+
+	select {
+	case <-complete:
+		logrus.Infof("Notification was acknowledged")
+		reapChan <- notificationId
+	case <-time.After(5 * time.Second):
+		logrus.Infof("Notification was never acknowledged, sending to Pushover")
+		err := sendPushover(token, userKey, message.Contents["message"].(string))
+		if err != nil {
+			logrus.Warnf("Error sending Pushover notification: %s", err)
+		}
+		reapChan <- notificationId
+	}
+}
+
+func unackAgent(in chan pmb.Message, token string, userKey string) {
+	reapChan := make(chan string)
+	completeChans := make(map[string]chan bool)
+
+	for {
+		select {
+		case message := <-in:
+			notificationId := message.Contents["notification-id"].(string)
+			if message.Contents["type"].(string) == "NotificationDisplayed" {
+				logrus.Infof("Notification Displayed")
+				if complete, ok := completeChans[notificationId]; ok {
+					complete <- true
+				}
+			} else if message.Contents["type"].(string) == "Notification" {
+				logrus.Infof("Notification Sent")
+				complete := make(chan bool)
+				completeChans[notificationId] = complete
+				go waitForComplete(message, complete, reapChan, token, userKey)
+			}
+		case notificationId := <-reapChan:
+			logrus.Infof("Reaping channel for notification id %s", notificationId)
+			if complete, ok := completeChans[notificationId]; ok {
+				close(complete)
+				delete(completeChans, notificationId)
+			}
+			// case _ = <-time.After(10 * time.Second):
+			// 	logrus.Infof("completeChans: %s", completeChans)
+		}
+	}
+}
+
 func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey string) error {
 
-	logrus.Debugf("always: %f, unacknowledged: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged)
+	logrus.Debugf("always: %f, unacknowledged: %f, unseen: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged, notifyMobileCommand.LevelUnseen)
+
+	unackChan := make(chan pmb.Message)
+	go unackAgent(unackChan, token, userKey)
 
 	for {
 		message := <-conn.In
 		if message.Contents["type"].(string) == "Notification" {
 			level := message.Contents["level"].(float64)
+
+			if level >= notifyMobileCommand.LevelUnacknowledged {
+				unackChan <- message
+			}
+
 			if level >= notifyMobileCommand.LevelAlways {
 				logrus.Infof("Important notification found, sending Pushover")
 				err := sendPushover(token, userKey, message.Contents["message"].(string))
 				if err != nil {
 					logrus.Warnf("Error sending Pushover notification: %s", err)
 				}
-			} else if level >= notifyMobileCommand.LevelUnacknowledged {
-				logrus.Infof("Potentially unacknowledged notification found, unfortunately I can't do anything with it.")
-				// TODO: detect if not properly notified elsewhere and send Pushover
 			} else {
 				logrus.Infof("Unimportant notification found, dropping on the floor.")
+			}
+		} else if message.Contents["type"].(string) == "NotificationDisplayed" {
+			level := message.Contents["level"].(float64)
+
+			if level >= notifyMobileCommand.LevelUnacknowledged {
+				unackChan <- message
+			}
+
+			screenSaverOn := message.Contents["screenSaverOn"].(bool)
+			if level >= notifyMobileCommand.LevelUnseen {
+				if screenSaverOn {
+					logrus.Infof("Unseen notification found, sending Pushover")
+					err := sendPushover(token, userKey, message.Contents["message"].(string))
+					if err != nil {
+						logrus.Warnf("Error sending Pushover notification: %s", err)
+					}
+				} else {
+					logrus.Infof("Seen notification found, skipping Pushover")
+				}
+			} else {
+				logrus.Infof("Unimportant unseen notification found, dropping on the floor.")
 			}
 		}
 	}
