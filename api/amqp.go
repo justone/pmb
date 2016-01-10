@@ -4,37 +4,16 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/streadway/amqp"
 
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/tls"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"strings"
 	"time"
 )
 
-type Message struct {
-	Contents map[string]interface{}
-	Raw      string
-}
-
-type Connection struct {
-	Out    chan Message
-	In     chan Message
-	uri    string
-	prefix string
-	Keys   []string
-	Id     string
-}
-
 var topicSuffix = "pmb"
 
-func connect(URI string, id string) (*Connection, error) {
+func connectAMQP(URI string, id string) (*Connection, error) {
 
 	uriParts, err := amqp.ParseURI(URI)
 	if err != nil {
@@ -51,7 +30,7 @@ func connect(URI string, id string) (*Connection, error) {
 
 	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix, Id: id}
 
-	logrus.Debugf("calling listen/send")
+	logrus.Debugf("calling listen/send AMQP")
 	go listenToAMQP(conn, done, id)
 	go sendToAMQP(conn, done, id)
 
@@ -81,39 +60,10 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 	for {
 		message := <-sender
 
-		// tag message with sender id
-		message.Contents["id"] = id
-
-		// add a few other pieces of information
-		hostname, ip, err := localNetInfo()
-
-		message.Contents["hostname"] = hostname
-		message.Contents["ip"] = ip
-		message.Contents["sent"] = time.Now().Format(time.RFC3339)
-
-		logrus.Debugf("Sending message: %s", message.Contents)
-
-		json, err := json.Marshal(message.Contents)
+		bodies, err := prepareMessage(message, pmbConn.Keys, id)
 		if err != nil {
-			// TODO: handle this error better
-			return
-		}
-
-		var bodies [][]byte
-		if len(pmbConn.Keys) > 0 {
-			logrus.Debugf("Encrypting message...")
-			for _, key := range pmbConn.Keys {
-				encrypted, err := encrypt([]byte(key), string(json))
-
-				if err != nil {
-					logrus.Warningf("Unable to encrypt message!")
-					continue
-				}
-
-				bodies = append(bodies, []byte(encrypted))
-			}
-		} else {
-			bodies = [][]byte{json}
+			logrus.Warningf("Error preparing message: %s", err)
+			continue
 		}
 
 		for _, body := range bodies {
@@ -152,21 +102,6 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 			}
 		}
 	}
-}
-
-func localNetInfo() (string, string, error) {
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		return "", "", err
-	}
-
-	addrs, err := net.LookupHost(hostname)
-	if err != nil {
-		return hostname, "", err
-	}
-
-	return hostname, addrs[0], nil
 }
 
 func connectToAMQP(uri string) (*amqp.Connection, error) {
@@ -208,7 +143,6 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 
 	done <- nil
 
-	receiver := pmbConn.In
 	for {
 		delivery, ok := <-msgs
 		if !ok {
@@ -228,66 +162,8 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 		}
 		logrus.Debugf("Raw message received: %s", string(delivery.Body))
 
-		var message []byte
-		var rawData interface{}
-		if delivery.Body[0] != '{' {
-			logrus.Debugf("Decrypting message...")
-			if len(pmbConn.Keys) > 0 {
-				logrus.Debugf("Attemping to decrypt with %d keys...", len(pmbConn.Keys))
-				decryptedOk := false
-				for _, key := range pmbConn.Keys {
-					decrypted, err := decrypt([]byte(key), string(delivery.Body))
-					if err != nil {
-						logrus.Warningf("Unable to decrypt message!")
-						continue
-					}
-
-					// check if message was decrypted into json
-					var rd interface{}
-					err = json.Unmarshal([]byte(decrypted), &rd)
-					if err != nil {
-						// only report this error at debug level.  When
-						// multiple keys exist, this will always print
-						// something, and it's not error worthy
-						logrus.Debugf("Unable to decrypt message (bad key)!")
-						continue
-					}
-
-					decryptedOk = true
-					logrus.Debugf("Successfully decrypted with %s...", key[0:10])
-					message = []byte(decrypted)
-					rawData = rd
-				}
-
-				if !decryptedOk {
-					continue
-				}
-
-			} else {
-				logrus.Warningf("Encrypted message and no key!")
-			}
-		} else {
-			message = delivery.Body
-			err := json.Unmarshal(message, &rawData)
-			if err != nil {
-				logrus.Debugf("Unable to unmarshal JSON data, skipping.")
-				continue
-			}
-		}
-
-		data := rawData.(map[string]interface{})
-
-		senderId := data["id"].(string)
-
-		// hide messages from ourselves
-		if senderId != id {
-			logrus.Debugf("Message received: %s", data)
-			receiver <- Message{Contents: data, Raw: string(message)}
-		} else {
-			logrus.Debugf("Message received but ignored: %s", data)
-		}
+		parseMessage(delivery.Body, pmbConn.Keys, pmbConn.In, id)
 	}
-
 }
 
 func setupSendForever(uri string, prefix string, id string) (*amqp.Channel, error) {
@@ -379,46 +255,4 @@ func setupListen(uri string, prefix string, id string) (<-chan amqp.Delivery, er
 	msgs, err := ch.Consume(q.Name, "", true, false, false, false, nil)
 
 	return msgs, nil
-}
-
-// encrypt string to base64'd AES
-func encrypt(key []byte, text string) (string, error) {
-	plaintext := []byte(text)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
-	}
-
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
-
-	return base64.URLEncoding.EncodeToString(ciphertext), nil
-}
-
-// decrypt from base64'd AES
-func decrypt(key []byte, cryptoText string) (string, error) {
-	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	if len(ciphertext) < aes.BlockSize {
-		return "", fmt.Errorf("ciphertext too short")
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(ciphertext, ciphertext)
-
-	return fmt.Sprintf("%s", ciphertext), nil
 }
