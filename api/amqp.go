@@ -18,20 +18,6 @@ import (
 	"time"
 )
 
-type Message struct {
-	Contents map[string]interface{}
-	Raw      string
-}
-
-type Connection struct {
-	Out    chan Message
-	In     chan Message
-	uri    string
-	prefix string
-	Keys   []string
-	Id     string
-}
-
 var topicSuffix = "pmb"
 
 func connectAMQP(URI string, id string) (*Connection, error) {
@@ -51,7 +37,7 @@ func connectAMQP(URI string, id string) (*Connection, error) {
 
 	conn := &Connection{In: in, Out: out, uri: URI, prefix: prefix, Id: id}
 
-	logrus.Debugf("calling listen/send")
+	logrus.Debugf("calling listen/send AMQP")
 	go listenToAMQP(conn, done, id)
 	go sendToAMQP(conn, done, id)
 

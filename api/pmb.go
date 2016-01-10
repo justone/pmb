@@ -19,6 +19,20 @@ type PMB struct {
 	config PMBConfig
 }
 
+type Message struct {
+	Contents map[string]interface{}
+	Raw      string
+}
+
+type Connection struct {
+	Out    chan Message
+	In     chan Message
+	uri    string
+	prefix string
+	Keys   []string
+	Id     string
+}
+
 type Notification struct {
 	Message string
 	URL     string
@@ -140,7 +154,12 @@ func SendNotification(conn *Connection, note Notification) error {
 }
 
 func connect(URI string, id string) (*Connection, error) {
-	return connectAMQP(URI, id)
+	if strings.HasPrefix(URI, "http") {
+		return connectHTTP(URI, id)
+	} else if strings.HasPrefix(URI, "amqp") {
+		return connectAMQP(URI, id)
+	}
+	return nil, fmt.Errorf("Unknown PMB URI")
 }
 
 func copyKey(URI string, id string) (*Connection, error) {
