@@ -11,7 +11,7 @@ import (
 )
 
 type BrokerCommand struct {
-	// nothing yet
+	Address string `short:"a" long:"address" description:"Address to listen on" default:":3000"`
 }
 
 var brokerCommand BrokerCommand
@@ -46,7 +46,7 @@ func (x *BrokerCommand) Execute(args []string) error {
 
 		bp.Send(bus, string(body))
 	})
-	m.Run()
+	m.RunOnAddr(brokerCommand.Address)
 
 	return nil
 }
