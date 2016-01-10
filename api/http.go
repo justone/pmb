@@ -55,6 +55,11 @@ func listenToHTTP(pmbConn *Connection, done chan error, id string) {
 
 		if res.StatusCode == 200 {
 			parseMessage(body, pmbConn.Keys, pmbConn.In, id)
+		} else if res.StatusCode == 408 {
+			continue
+		} else {
+			logrus.Warningf("Bad request: %s", res.Status)
+			time.Sleep(1 * time.Second)
 		}
 	}
 }
