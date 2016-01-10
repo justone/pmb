@@ -139,6 +139,10 @@ func SendNotification(conn *Connection, note Notification) error {
 	}
 }
 
+func connect(URI string, id string) (*Connection, error) {
+	return connectAMQP(URI, id)
+}
+
 func copyKey(URI string, id string) (*Connection, error) {
 	conn, err := connect(URI, id)
 	if err != nil {

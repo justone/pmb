@@ -34,7 +34,7 @@ type Connection struct {
 
 var topicSuffix = "pmb"
 
-func connect(URI string, id string) (*Connection, error) {
+func connectAMQP(URI string, id string) (*Connection, error) {
 
 	uriParts, err := amqp.ParseURI(URI)
 	if err != nil {
