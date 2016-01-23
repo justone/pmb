@@ -63,7 +63,7 @@ func init() {
 		&notifyMobileCommand)
 }
 
-func waitForComplete(message pmb.Message, complete chan bool, reapChan chan string, token string, userKey string) {
+func waitForComplete(message pmb.Message, complete chan bool, reapChan chan string, pushoverChan chan pmb.Message) {
 	notificationId := message.Contents["notification-id"].(string)
 
 	select {
@@ -72,15 +72,12 @@ func waitForComplete(message pmb.Message, complete chan bool, reapChan chan stri
 		reapChan <- notificationId
 	case <-time.After(5 * time.Second):
 		logrus.Infof("Notification was never acknowledged, sending to Pushover")
-		err := sendPushover(token, userKey, message.Contents["message"].(string))
-		if err != nil {
-			logrus.Warnf("Error sending Pushover notification: %s", err)
-		}
+		pushoverChan <- message
 		reapChan <- notificationId
 	}
 }
 
-func unackAgent(in chan pmb.Message, token string, userKey string) {
+func unackAgent(in chan pmb.Message, pushoverChan chan pmb.Message) {
 	reapChan := make(chan string)
 	completeChans := make(map[string]chan bool)
 
@@ -97,7 +94,7 @@ func unackAgent(in chan pmb.Message, token string, userKey string) {
 				logrus.Infof("Notification Sent")
 				complete := make(chan bool)
 				completeChans[notificationId] = complete
-				go waitForComplete(message, complete, reapChan, token, userKey)
+				go waitForComplete(message, complete, reapChan, pushoverChan)
 			}
 		case notificationId := <-reapChan:
 			logrus.Infof("Reaping channel for notification id %s", notificationId)
@@ -115,8 +112,11 @@ func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey stri
 
 	logrus.Debugf("always: %f, unacknowledged: %f, unseen: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged, notifyMobileCommand.LevelUnseen)
 
+	pushoverChan := make(chan pmb.Message)
+	go pushoverAgent(pushoverChan, token, userKey)
+
 	unackChan := make(chan pmb.Message)
-	go unackAgent(unackChan, token, userKey)
+	go unackAgent(unackChan, pushoverChan)
 
 	for {
 		message := <-conn.In
@@ -129,10 +129,7 @@ func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey stri
 
 			if level >= notifyMobileCommand.LevelAlways {
 				logrus.Infof("Important notification found, sending Pushover")
-				err := sendPushover(token, userKey, message.Contents["message"].(string))
-				if err != nil {
-					logrus.Warnf("Error sending Pushover notification: %s", err)
-				}
+				pushoverChan <- message
 			} else {
 				logrus.Infof("Unimportant notification found, dropping on the floor.")
 			}
@@ -147,10 +144,7 @@ func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey stri
 			if level >= notifyMobileCommand.LevelUnseen {
 				if screenSaverOn {
 					logrus.Infof("Unseen notification found, sending Pushover")
-					err := sendPushover(token, userKey, message.Contents["message"].(string))
-					if err != nil {
-						logrus.Warnf("Error sending Pushover notification: %s", err)
-					}
+					pushoverChan <- message
 				} else {
 					logrus.Infof("Seen notification found, skipping Pushover")
 				}
@@ -163,16 +157,40 @@ func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey stri
 	return nil
 }
 
-func sendPushover(token string, userKey string, message string) error {
+func pushoverAgent(in chan pmb.Message, token string, userKey string) {
+
+	recentIds := make([]string, 0)
 
 	po, err := pushover.NewPushover(token, userKey)
 	if err != nil {
-		return err
+		logrus.Warnf("Error creating new Pushover instance: %s", err)
 	}
 
-	err = po.Message(message)
-	if err != nil {
-		return err
+MESSAGE:
+	for {
+		message := <-in
+
+		messageText := message.Contents["message"].(string)
+		messageId := message.Contents["notification-id"].(string)
+
+		for _, val := range recentIds {
+			if val == messageId {
+				logrus.Warnf("Message with id %s already sent to Pushover, skipping", messageId)
+				continue MESSAGE
+			}
+		}
+
+		// record ID to debounce messages
+		recentIds = append(recentIds, messageId)
+		if len(recentIds) > 10 {
+			recentIds = recentIds[1:]
+		}
+
+		err = po.Message(messageText)
+		if err != nil {
+			logrus.Warnf("Error sending Pushover notification: %s", err)
+		}
 	}
-	return nil
+
+	return
 }
