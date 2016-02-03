@@ -62,6 +62,7 @@ func runNotify(conn *pmb.Connection, id string, args []string) error {
 
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
 		command := strings.Join(args, " ")
 		logrus.Infof("Waiting for command '%s' to finish...\n", command)
