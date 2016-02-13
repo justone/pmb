@@ -29,6 +29,11 @@ func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
 	launchAgentFile := fmt.Sprintf("%s/Library/LaunchAgents/%s.plist", os.Getenv("HOME"), agentName)
 	logrus.Debugf("launchagent file: %s", launchAgentFile)
 
+	var homeDir string
+	if homeDir = os.Getenv("HOME"); len(homeDir) == 0 {
+		homeDir = "/tmp"
+	}
+
 	// create launch data
 	executable, err := osext.Executable()
 	if err != nil {
@@ -36,9 +41,10 @@ func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
 	}
 
 	launchData := struct {
-		Name, Executable, Args, Primary string
+		Name, Executable, Primary, HomeDir string
+		Args                               []string
 	}{
-		agentName, executable, arguments, bus.PrimaryURI(),
+		agentName, executable, bus.PrimaryURI(), homeDir, args,
 	}
 
 	switch command {
@@ -169,31 +175,31 @@ func generateLaunchConfig(launchData interface{}) string {
 	configureTemplate := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-        <key>Label</key>
-        <string>{{ .Name }}</string>
-        <key>OnDemand</key>
-        <false/>
-        <key>EnvironmentVariables</key>
-        <dict>
-            <key>PATH</key>
-            <string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
-            <key>PMB_PRIMARY_URI</key>
-            <string>{{ .Primary }}</string>
-        </dict>     
-        <key>ProgramArguments</key>
-        <array>
-            <string>{{ .Executable }}</string>
-            <string>{{ .Args }}</string>
-        </array>
-    </dict>
+	<dict>
+		<key>Label</key>
+		<string>{{ .Name }}</string>
+		<key>KeepAlive</key>
+		<true/>
+		<key>EnvironmentVariables</key>
+		<dict>
+			<key>PATH</key>
+			<string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
+			<key>PMB_PRIMARY_URI</key>
+			<string>{{ .Primary }}</string>
+		</dict>
+		<key>StandardOutPath</key>
+		<string>{{ .HomeDir }}/.pmb.log</string>
+		<key>StandardErrorPath</key>
+		<string>{{ .HomeDir }}/.pmb.log</string>
+		<key>ProgramArguments</key>
+		<array>
+			<string>{{ .Executable }}</string>
+{{ range .Args }}
+			<string>{{ . }}</string>
+{{ end }}
+		</array>
+	</dict>
 </plist>`
-
-	// TODO: add lines like this to show logs
-	// <key>StandardOutPath</key>
-	// <string>/Users/foo/pmb_out.log</string>
-	// <key>StandardErrorPath</key>
-	// <string>/Users/foo/pmb_err.log</string>
 
 	tmpl := template.Must(template.New("configure").Parse(configureTemplate))
 	var output bytes.Buffer
