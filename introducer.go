@@ -61,7 +61,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 			args = append(args, "-n", introducerCommand.Name)
 		}
 
-		return handleOSXCommand(bus, introducerCommand.OSX, strings.Join(args, " "))
+		return handleOSXCommand(bus, introducerCommand.OSX, "introducer", args)
 	} else {
 		logrus.Debugf("calling GetConnection")
 		conn, err := bus.ConnectIntroducer(name)

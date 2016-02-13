@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 	"text/template"
 
 	"github.com/Sirupsen/logrus"
@@ -14,15 +13,14 @@ import (
 	"github.com/kardianos/osext"
 )
 
-func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
+func handleOSXCommand(bus *pmb.PMB, command string, jobName string, arguments []string) error {
 
 	var err error
 
 	logrus.Debugf("Handling %s with args of %s", command, arguments)
 
 	// launch agent name
-	args := strings.Split(arguments, " ")
-	agentName := fmt.Sprintf("org.endot.pmb.%s", args[0])
+	agentName := fmt.Sprintf("org.endot.pmb.%s", jobName)
 	logrus.Debugf("Name of launchagent: %s", agentName)
 
 	// figure out launch agent config path
@@ -44,7 +42,7 @@ func handleOSXCommand(bus *pmb.PMB, command string, arguments string) error {
 		Name, Executable, Primary, HomeDir string
 		Args                               []string
 	}{
-		agentName, executable, bus.PrimaryURI(), homeDir, args,
+		agentName, executable, bus.PrimaryURI(), homeDir, arguments,
 	}
 
 	switch command {
