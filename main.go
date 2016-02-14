@@ -36,6 +36,7 @@ func (f *SyslogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 var globalOptions GlobalOptions
 var parser = flags.NewParser(&globalOptions, flags.Default)
+var originalArgs []string
 
 func main() {
 
@@ -64,7 +65,8 @@ func main() {
 		}
 	}
 
-	if _, err := parser.Parse(); err != nil {
+	originalArgs = os.Args
+	if _, err := parser.ParseArgs(os.Args); err != nil {
 		os.Exit(1)
 	}
 }

@@ -51,17 +51,13 @@ func (x *IntroducerCommand) Execute(args []string) error {
 	}
 
 	if len(introducerCommand.OSX) > 0 {
-
-		// capture existing args so they are reflected in the runner
-		args := []string{"introducer"}
-		if introducerCommand.PersistKey {
-			args = append(args, "-p")
+		filteredArgs := make([]string, 0)
+		for _, arg := range originalArgs[1:] {
+			if !(strings.HasPrefix(arg, "-x=") || strings.HasPrefix(arg, "--osx=")) {
+				filteredArgs = append(filteredArgs, arg)
+			}
 		}
-		if len(introducerCommand.Name) > 0 {
-			args = append(args, "-n", introducerCommand.Name)
-		}
-
-		return handleOSXCommand(bus, introducerCommand.OSX, "introducer", args)
+		return handleOSXCommand(bus, introducerCommand.OSX, "introducer", filteredArgs)
 	} else {
 		logrus.Debugf("calling GetConnection")
 		conn, err := bus.ConnectIntroducer(name)

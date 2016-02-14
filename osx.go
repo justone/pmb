@@ -13,14 +13,14 @@ import (
 	"github.com/kardianos/osext"
 )
 
-func handleOSXCommand(bus *pmb.PMB, command string, jobName string, arguments []string) error {
+func handleOSXCommand(bus *pmb.PMB, command string, subcommand string, arguments []string) error {
 
 	var err error
 
 	logrus.Debugf("Handling %s with args of %s", command, arguments)
 
 	// launch agent name
-	agentName := fmt.Sprintf("org.endot.pmb.%s", jobName)
+	agentName := fmt.Sprintf("org.endot.pmb.%s", subcommand)
 	logrus.Debugf("Name of launchagent: %s", agentName)
 
 	// figure out launch agent config path
@@ -56,7 +56,7 @@ restart - Restarts agent via launchctl.
 configure - This will configure the agent, but not start it.
 unconfigure - This will remove the agent configuration.
 
-`, fmt.Sprintf("pmb %s", arguments))
+`, fmt.Sprintf("pmb %s", subcommand))
 
 	case "restart":
 		err = configure(launchAgentFile, generateLaunchConfig(launchData))
