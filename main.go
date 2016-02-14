@@ -66,7 +66,7 @@ func main() {
 	}
 
 	originalArgs = os.Args
-	if _, err := parser.ParseArgs(os.Args); err != nil {
+	if _, err := parser.Parse(); err != nil {
 		os.Exit(1)
 	}
 }
