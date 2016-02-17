@@ -241,6 +241,8 @@ func parseKeys(keystring string) ([]string, error) {
 
 	if len(keys) == 0 {
 		return []string{}, fmt.Errorf("Auth key(s) invalid.")
+	} else {
+		logrus.Debugf("keys: %s", keys)
 	}
 
 	return keys, nil

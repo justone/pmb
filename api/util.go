@@ -123,7 +123,7 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 				decrypted, err := decrypt([]byte(key), string(body))
 				if err != nil {
 					logrus.Warningf("Unable to decrypt message!")
-					return
+					continue
 				}
 
 				// check if message was decrypted into json
@@ -134,13 +134,14 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 					// multiple keys exist, this will always print
 					// something, and it's not error worthy
 					logrus.Debugf("Unable to decrypt message (bad key)!")
-					return
+					continue
 				}
 
 				decryptedOk = true
 				logrus.Debugf("Successfully decrypted with %s...", key[0:10])
 				message = []byte(decrypted)
 				rawData = rd
+				break
 			}
 
 			if !decryptedOk {
@@ -149,6 +150,7 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 
 		} else {
 			logrus.Warningf("Encrypted message and no key!")
+			return
 		}
 	} else {
 		message = body
