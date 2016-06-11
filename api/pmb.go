@@ -78,7 +78,7 @@ func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], true, checkKey)
+		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], false, checkKey)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
