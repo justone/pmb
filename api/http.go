@@ -10,13 +10,20 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-func connectHTTP(URI string, id string) (*Connection, error) {
+func connectHTTP(URI string, id string, sub string) (*Connection, error) {
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)
 
 	done := make(chan error)
 
-	conn := &Connection{In: in, Out: out, uri: URI, prefix: "", Id: id}
+	var finalURI string
+	if len(sub) > 0 {
+		finalURI = fmt.Sprintf("%s-%s", URI, sub)
+	} else {
+		finalURI = URI
+	}
+
+	conn := &Connection{In: in, Out: out, uri: finalURI, prefix: "", Id: id}
 
 	logrus.Debugf("calling listen/send HTTP")
 	go listenToHTTP(conn, done, id)

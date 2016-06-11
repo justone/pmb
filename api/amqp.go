@@ -13,7 +13,7 @@ import (
 
 var topicSuffix = "pmb"
 
-func connectAMQP(URI string, id string) (*Connection, error) {
+func connectAMQP(URI string, id string, sub string) (*Connection, error) {
 
 	uriParts, err := amqp.ParseURI(URI)
 	if err != nil {
@@ -21,7 +21,12 @@ func connectAMQP(URI string, id string) (*Connection, error) {
 	}
 
 	// all resources are prefixed with username
-	prefix := uriParts.Username
+	var prefix string
+	if len(sub) > 0 {
+		prefix = fmt.Sprintf("%s-%s", uriParts.Username, sub)
+	} else {
+		prefix = uriParts.Username
+	}
 
 	in := make(chan Message, 10)
 	out := make(chan Message, 10)

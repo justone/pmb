@@ -68,7 +68,7 @@ func (pmb *PMB) ConnectIntroducer(id string) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], true, true)
+		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], true, true)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -78,17 +78,28 @@ func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], true, checkKey)
+		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], true, checkKey)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
 }
 
+func (pmb *PMB) ConnectSubClient(conn *Connection, sub string) (*Connection, error) {
+
+	if len(pmb.config["primary"]) > 0 {
+		logrus.Debugf("calling connectWithKey")
+		return connectWithKey(pmb.config["primary"], conn.Id, sub, strings.Join(conn.Keys, ","), false, false)
+	}
+
+	return nil, errors.New("No URI found, use '-p' to specify one")
+}
+
+// Deprecated
 func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
 	if len(pmb.config["primary"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, pmb.config["key"], isIntroducer, true)
+		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], isIntroducer, true)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -153,17 +164,17 @@ func SendNotification(conn *Connection, note Notification) error {
 	}
 }
 
-func connect(URI string, id string) (*Connection, error) {
+func connect(URI string, id string, sub string) (*Connection, error) {
 	if strings.HasPrefix(URI, "http") {
-		return connectHTTP(URI, id)
+		return connectHTTP(URI, id, sub)
 	} else if strings.HasPrefix(URI, "amqp") {
-		return connectAMQP(URI, id)
+		return connectAMQP(URI, id, sub)
 	}
 	return nil, fmt.Errorf("Unknown PMB URI")
 }
 
 func copyKey(URI string, id string) (*Connection, error) {
-	conn, err := connect(URI, id)
+	conn, err := connect(URI, id, "")
 	if err != nil {
 		return nil, err
 	}
@@ -179,9 +190,9 @@ func copyKey(URI string, id string) (*Connection, error) {
 	return conn, nil
 }
 
-func connectWithKey(URI string, id string, key string, isIntroducer bool, checkKey bool) (*Connection, error) {
+func connectWithKey(URI string, id string, sub string, key string, isIntroducer bool, checkKey bool) (*Connection, error) {
 	logrus.Debugf("calling connect")
-	conn, err := connect(URI, id)
+	conn, err := connect(URI, id, sub)
 	if err != nil {
 		return nil, err
 	}
