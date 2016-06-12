@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
+	"fmt"
+
 	"github.com/justone/pmb/api"
 )
 
 type SinkCommand struct {
-	Name string `short:"n" long:"name" description:"Sink name."`
+	Name string `short:"n" long:"name" description:"Stream name." default:"default"`
 }
 
 var sinkCommand SinkCommand
@@ -40,7 +41,7 @@ func runSink(bus *pmb.PMB, conn *pmb.Connection, id string) error {
 
 	for {
 		message := <-subConn.In
-		logrus.Infof("Message received: %s", message.Contents)
+		fmt.Printf("%s: %s\n", message.Contents["identifier"], message.Contents["data"])
 	}
 
 	return nil
