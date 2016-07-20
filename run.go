@@ -92,16 +92,18 @@ func runRun(conn *pmb.Connection, id string, args []string) error {
 
 	cmdSuccess := true
 	result := "successfully"
+	resultEmoji := "👍"
 	if err != nil {
 		result = fmt.Sprintf("with error '%s'", err.Error())
+		resultEmoji = "👎"
 		cmdSuccess = false
 	}
 	logrus.Infof("Process complete.")
 
 	if len(message) == 0 {
-		message = fmt.Sprintf("Command [%s] completed %s.", command, result)
+		message = fmt.Sprintf("%s Command [%s] completed %s.", resultEmoji, command, result)
 	} else {
-		message = fmt.Sprintf("%s. Command completed %s.", message, result)
+		message = fmt.Sprintf("%s. %s Command completed %s.", message, resultEmoji, result)
 	}
 
 	note := pmb.Notification{Message: message, Level: runCommand.Level}
