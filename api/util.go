@@ -114,6 +114,7 @@ func prepareMessage(message Message, keys []string, id string) ([][]byte, error)
 func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 	var message []byte
 	var rawData interface{}
+	messageWasEncrypted := false
 	if body[0] != '{' {
 		logrus.Debugf("Decrypting message...")
 		if len(keys) > 0 {
@@ -146,6 +147,8 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 
 			if !decryptedOk {
 				return
+			} else {
+				messageWasEncrypted = true
 			}
 
 		} else {
@@ -164,6 +167,12 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 	data := rawData.(map[string]interface{})
 
 	senderId := data["id"].(string)
+
+	// only RequestAuth messages are allowed to be unencrypted
+	if !messageWasEncrypted && data["type"].(string) != "RequestAuth" {
+		logrus.Warningf("Unencrypted message that wasn't RequestAuth detected, discarding...")
+		return
+	}
 
 	// hide messages from ourselves
 	if senderId != id {

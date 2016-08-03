@@ -22,6 +22,7 @@ type PMB struct {
 type Message struct {
 	Contents map[string]interface{}
 	Raw      string
+	Done     chan error
 }
 
 type Connection struct {
@@ -182,10 +183,13 @@ func copyKey(URI string, id string) (*Connection, error) {
 	data := map[string]interface{}{
 		"type": "RequestAuth",
 	}
-	conn.Out <- Message{Contents: data}
+	mess := Message{
+		Contents: data,
+		Done:     make(chan error),
+	}
+	conn.Out <- mess
 
-	// wait a second for the message to go out
-	time.Sleep(1 * time.Second)
+	<-mess.Done
 
 	return conn, nil
 }
