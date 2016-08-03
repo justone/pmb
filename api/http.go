@@ -83,5 +83,10 @@ func sendToHTTP(pmbConn *Connection, done chan error, id string) {
 				logrus.Warningf("Error sending: %s", err)
 			}
 		}
+
+		if message.Done != nil {
+			logrus.Debugf("Done channel present, sending message")
+			message.Done <- nil
+		}
 	}
 }

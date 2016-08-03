@@ -101,6 +101,11 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 				}
 			}
 		}
+
+		if message.Done != nil {
+			logrus.Debugf("Done channel present, sending message")
+			message.Done <- nil
+		}
 	}
 }
 
