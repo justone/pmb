@@ -13,7 +13,7 @@ VERSION="${DATE}-${ABBREV_SHA1}"
 echo "Building $VERSION"
 echo
 
-gox -ldflags "-X main.version $VERSION" -osarch="darwin/amd64 linux/amd64 linux/arm"
+gox -ldflags "-X main.version=$VERSION" -osarch="darwin/amd64 linux/amd64 linux/arm"
 
 mkdir $VERSION
 
