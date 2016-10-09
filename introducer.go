@@ -93,7 +93,8 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 		} else if message.Contents["type"].(string) == "OpenURL" {
 			err := openURL(message.Contents["data"].(string))
 			if err != nil {
-				return err
+				displayNotice(fmt.Sprintf("Unable to open url: %v", err), false)
+				continue
 			}
 
 			displayNotice("URL opened.", false)

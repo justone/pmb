@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/toqueteos/webbrowser"
 )
 
 func copyToClipboard(data string) error {
@@ -31,23 +31,8 @@ func copyToClipboard(data string) error {
 	return nil
 }
 
-func openURL(data string) error {
-
-	var cmd *exec.Cmd
-
-	// TODO support more than OSX
-	if runtime.GOOS == "darwin" {
-		cmd = exec.Command("open", data)
-	} else {
-		return fmt.Errorf("unable to open URL on this platform")
-	}
-	cmd.Stdin = strings.NewReader(data)
-
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
+func openURL(url string) error {
+	return webbrowser.Open(url)
 }
 
 func truncate(data string, length int) string {
