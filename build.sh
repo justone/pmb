@@ -13,9 +13,6 @@ VERSION="${DATE}-${ABBREV_SHA1}"
 echo "Building $VERSION"
 echo
 
-# use bundled versions
-export GOPATH=`godep path`:$GOPATH
-
 gox -ldflags "-X main.version $VERSION" -osarch="darwin/amd64 linux/amd64 linux/arm"
 
 mkdir $VERSION
