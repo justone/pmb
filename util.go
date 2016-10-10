@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -58,6 +59,12 @@ func openURL(data string, isHTML bool) error {
 
 		// url = fmt.Sprintf("file://%s", nameWithSuffix)
 		url = nameWithSuffix
+
+		go func() {
+			time.Sleep(15 * time.Second)
+			logrus.Infof("cleaning up temporary file: %s", nameWithSuffix)
+			os.Remove(nameWithSuffix)
+		}()
 	} else {
 		url = data
 	}
