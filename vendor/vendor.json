@@ -86,6 +86,12 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "U6KerxFfRUPTl5GrBy71Fh8Kbhw=",
+			"path": "github.com/toqueteos/webbrowser",
+			"revision": "970743f85c21bbfe01b0b7464aff85669eb0eb46",
+			"revisionTime": "2016-09-14T13:59:53Z"
+		},
+		{
 			"checksumSHA1": "QcDlr1sWBDt6Dn/v7W/MRgccAi4=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "076b546753157f758b316e59bcb51e6807c04057",

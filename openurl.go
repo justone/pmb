@@ -12,7 +12,7 @@ import (
 )
 
 type OpenURLCommand struct {
-	// no options yet
+	IsHTML bool `short:"H" long:"html" description:"Instead of a URL, HTML is being provided."`
 }
 
 var openURLCommand OpenURLCommand
@@ -40,7 +40,7 @@ func (x *OpenURLCommand) Execute(args []string) error {
 		return err
 	}
 
-	return runOpenURL(conn, id, strings.TrimSpace(data))
+	return runOpenURL(conn, id, strings.TrimSpace(data), openURLCommand.IsHTML)
 }
 
 func init() {
@@ -50,11 +50,12 @@ func init() {
 		&openURLCommand)
 }
 
-func runOpenURL(conn *pmb.Connection, id string, data string) error {
+func runOpenURL(conn *pmb.Connection, id string, data string, isHTML bool) error {
 
 	copyData := map[string]interface{}{
-		"type": "OpenURL",
-		"data": data,
+		"type":    "OpenURL",
+		"data":    data,
+		"is_html": isHTML,
 	}
 	conn.Out <- pmb.Message{Contents: copyData}
 

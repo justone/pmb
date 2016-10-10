@@ -91,9 +91,17 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
 			}
 			conn.Out <- pmb.Message{Contents: data}
 		} else if message.Contents["type"].(string) == "OpenURL" {
-			err := openURL(message.Contents["data"].(string))
+			var isHTML bool
+			if isHTMLRaw, ok := message.Contents["is_html"]; ok {
+				isHTML = isHTMLRaw.(bool)
+			} else {
+				isHTML = false
+			}
+
+			err := openURL(message.Contents["data"].(string), isHTML)
 			if err != nil {
-				return err
+				displayNotice(fmt.Sprintf("Unable to open url: %v", err), false)
+				continue
 			}
 
 			displayNotice("URL opened.", false)
