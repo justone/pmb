@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/toqueteos/webbrowser"
 )
 
 func copyToClipboard(data string) error {
@@ -31,8 +32,55 @@ func copyToClipboard(data string) error {
 	return nil
 }
 
-func openURL(url string) error {
-	return webbrowser.Open(url)
+func openURL(data string, isHTML bool) error {
+	var url string
+	if isHTML {
+		tmpfile, err := ioutil.TempFile("", "pmbopenurl")
+		if err != nil {
+			return err
+		}
+
+		_, err = tmpfile.Write([]byte(data))
+		if err != nil {
+			return err
+		}
+
+		err = tmpfile.Close()
+		if err != nil {
+			return err
+		}
+
+		nameWithSuffix := fmt.Sprintf("%s.html", tmpfile.Name())
+		err = os.Rename(tmpfile.Name(), nameWithSuffix)
+		if err != nil {
+			return err
+		}
+
+		// url = fmt.Sprintf("file://%s", nameWithSuffix)
+		url = nameWithSuffix
+	} else {
+		url = data
+	}
+
+	logrus.Infof("opening url: %s", url)
+
+	// TODO switch to using webbrowser when it can handle file urls
+	// return webbrowser.Open(url)
+
+	var cmd *exec.Cmd
+	// only supports OSX
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command("open", url)
+	} else {
+		return fmt.Errorf("unable to open URL on this platform")
+	}
+	cmd.Stdin = strings.NewReader(data)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func truncate(data string, length int) string {
