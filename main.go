@@ -3,12 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"log/syslog"
 	"os"
 
 	"github.com/Sirupsen/logrus"
-	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -55,14 +52,7 @@ func main() {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 	globalOptions.LogSyslog = func() {
-		hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_INFO, "pmb")
-
-		if err == nil {
-			logrus.SetFormatter(&SyslogFormatter{})
-			// discard all output
-			logrus.SetOutput(ioutil.Discard)
-			logrus.AddHook(hook)
-		}
+		setupSyslog()
 	}
 
 	originalArgs = os.Args
