@@ -44,10 +44,16 @@ func (x *RemoteCopyCommand) Execute(args []string) error {
 }
 
 func init() {
-	parser.AddCommand("remotecopy",
+	cmd, err := parser.AddCommand("remotecopy",
 		"Remote copy.",
 		"",
 		&remoteCopyCommand)
+
+	cmd.Aliases = append(cmd.Aliases, "rc")
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func runRemoteCopy(conn *pmb.Connection, id string, data string) error {
