@@ -27,6 +27,12 @@
 			"revisionTime": "2015-05-29T07:30:14Z"
 		},
 		{
+			"checksumSHA1": "K6exl2ouL7d8cR2i378EzZOdRVI=",
+			"path": "github.com/howeyc/gopass",
+			"revision": "bf9dde6d0d2c004a008c27aaee91170c786f6db8",
+			"revisionTime": "2017-01-09T16:22:49Z"
+		},
+		{
 			"checksumSHA1": "arojRtqOmOlvVF+Bo4mv05dF/wc=",
 			"path": "github.com/hpcloud/tail",
 			"revision": "a30252cb686a21eb2d0b98132633053ec2f7f1e5",
@@ -90,6 +96,12 @@
 			"checksumSHA1": "y7f0ngR0ZKFEqxg8aiN1MUpjCN0=",
 			"path": "github.com/thorduri/pushover",
 			"revision": ""
+		},
+		{
+			"checksumSHA1": "xiderUuvye8Kpn7yX3niiJg32bE=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "bed12803fa9663d7aa2c2346b0c634ad2dcd43b7",
+			"revisionTime": "2017-02-01T20:15:17Z"
 		},
 		{
 			"checksumSHA1": "QcDlr1sWBDt6Dn/v7W/MRgccAi4=",

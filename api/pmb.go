@@ -1,7 +1,6 @@
 package pmb
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/howeyc/gopass"
 )
 
 type PMBConfig map[string]string
@@ -296,18 +296,16 @@ func requestKey(conn *Connection) (string, error) {
 		fmt.Errorf("failed to open /dev/tty", err)
 	}
 
-	fmt.Fprintf(tty, "Enter key: ")
-	key, err := bufio.NewReader(tty).ReadString('\n')
+	key, err := gopass.GetPasswdPrompt("Enter key: ", true, tty, tty)
 	if err != nil {
-		return "", err
+		if err == gopass.ErrInterrupted {
+			return "", fmt.Errorf("interrupted")
+		} else {
+			return "", err
+		}
 	}
 
-	err = tty.Close()
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(key), nil
+	return string(key), nil
 }
 
 func (pmb *PMB) PrimaryURI() string {
