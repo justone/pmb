@@ -98,6 +98,9 @@ func displayNotice(message string, sticky bool) error {
 
 		logrus.Debugf("Using growlnotify for notification.")
 		cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
+	} else if _, err := exec.LookPath("terminal-notifier"); err == nil {
+		cmd = exec.Command("terminal-notifier", "-message", message)
+		logrus.Debugf("Using terminal-notifier for notification.")
 	} else if _, err := exec.LookPath("tmux"); err == nil {
 		cmd = exec.Command("tmux", "display-message", message)
 		logrus.Debugf("Using tmux for notification.")
