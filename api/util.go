@@ -57,16 +57,23 @@ func decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
+// TODO: figure out better way of grabbing local ip
 func localNetInfo() (string, string, error) {
 
 	hostname, err := os.Hostname()
+	logrus.Debugf("hostname look up: %v", hostname)
 	if err != nil {
 		return "", "", err
 	}
 
 	addrs, err := net.LookupHost(hostname)
+	logrus.Debugf("addrs look up: %v", addrs)
 	if err != nil {
 		return hostname, "", err
+	}
+
+	if len(addrs) == 0 {
+		return hostname, "-.-.-.-", nil
 	}
 
 	return hostname, addrs[0], nil
