@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -291,17 +292,32 @@ func requestKey(conn *Connection) (string, error) {
 
 	time.Sleep(200 * time.Millisecond)
 
-	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
-	if err != nil {
-		fmt.Errorf("failed to open /dev/tty", err)
-	}
+	var key []byte
+	var err error
 
-	key, err := gopass.GetPasswdPrompt("Enter key: ", true, tty, tty)
-	if err != nil {
-		if err == gopass.ErrInterrupted {
-			return "", fmt.Errorf("interrupted")
-		} else {
-			return "", err
+	if runtime.GOOS == "windows" {
+		fmt.Printf("Enter key: ")
+		key, err = gopass.GetPasswd()
+		if err != nil {
+			if err == gopass.ErrInterrupted {
+				return "", fmt.Errorf("interrupted")
+			} else {
+				return "", err
+			}
+		}
+	} else {
+		tty, errt := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+		if errt != nil {
+			fmt.Errorf("failed to open /dev/tty", err)
+		}
+
+		key, err = gopass.GetPasswdPrompt("Enter key: ", true, tty, tty)
+		if err != nil {
+			if err == gopass.ErrInterrupted {
+				return "", fmt.Errorf("interrupted")
+			} else {
+				return "", err
+			}
 		}
 	}
 
