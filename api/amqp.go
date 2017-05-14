@@ -93,6 +93,10 @@ func sendToAMQP(pmbConn *Connection, done chan error, id string) {
 					logrus.Errorf("Unable to reconnect, exiting... %s", err)
 					return
 				} else {
+					pmbConn.In <- Message{
+						Contents: map[string]interface{}{"type": "Reconnected"},
+						Internal: true,
+					}
 					logrus.Infof("Reconnected.")
 					err = ch.Publish(
 						fmt.Sprintf("%s-%s", pmbConn.prefix, topicSuffix), // exchange
@@ -165,6 +169,10 @@ func listenToAMQP(pmbConn *Connection, done chan error, id string) {
 				logrus.Errorf("Unable to reconnect, exiting... %s", err)
 				return
 			} else {
+				pmbConn.In <- Message{
+					Contents: map[string]interface{}{"type": "Reconnected"},
+					Internal: true,
+				}
 				logrus.Infof("Reconnected.")
 				continue
 			}

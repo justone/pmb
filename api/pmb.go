@@ -24,6 +24,7 @@ type Message struct {
 	Contents map[string]interface{}
 	Raw      string
 	Done     chan error
+	Internal bool
 }
 
 type Connection struct {

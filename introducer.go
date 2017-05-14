@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
@@ -17,6 +18,7 @@ type IntroducerCommand struct {
 	OSX         string  `short:"x" long:"osx" description:"OSX LaunchAgent command (start, stop, restart, configure, unconfigure)" optional:"true" optional-value:"list"`
 	PersistKey  bool    `short:"p" long:"persist-key" description:"Persist the key and re-use it rather than generating a new key every run."`
 	LevelSticky float64 `short:"s" long:"level-sticky" description:"Level at which notifications should 'stick'." default:"3"`
+	Level       float64 `short:"l" long:"level" description:"Priority level, compared to other introducers." default:"5"`
 }
 
 var introducerCommand IntroducerCommand
@@ -66,7 +68,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 		}
 
 		logrus.Debugf("calling runIntroducer")
-		return runIntroducer(bus, conn)
+		return runIntroducer(bus, conn, introducerCommand.Level)
 	}
 }
 
@@ -77,69 +79,106 @@ func init() {
 		&introducerCommand)
 }
 
-func runIntroducer(bus *pmb.PMB, conn *pmb.Connection) error {
-	logrus.Infof("Introducer ready.")
+func sendPresent(out chan pmb.Message, level float64) {
+	out <- pmb.Message{Contents: map[string]interface{}{"type": "IntroducerPresent", "level": level}}
+}
+
+func sendRollCall(out chan pmb.Message) {
+	out <- pmb.Message{Contents: map[string]interface{}{"type": "IntroducerRollCall"}}
+}
+
+func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, level float64) error {
+	active := true
+	sendPresent(conn.Out, level)
+	sendRollCall(conn.Out)
+
+	logrus.Infof("Introducer ready (doing roll call).")
 	for {
-		message := <-conn.In
-		if message.Contents["type"].(string) == "CopyData" {
-			copyToClipboard(message.Contents["data"].(string))
-			displayNotice("Remote copy complete.", false)
-
-			data := map[string]interface{}{
-				"type":   "DataCopied",
-				"origin": message.Contents["id"].(string),
+		introTimeout := time.After(time.Second * 30)
+		select {
+		case <-introTimeout:
+			if !active {
+				logrus.Infof("checking if I should become active...")
+				active = true
+				sendRollCall(conn.Out)
 			}
-			conn.Out <- pmb.Message{Contents: data}
-		} else if message.Contents["type"].(string) == "OpenURL" {
-			var isHTML bool
-			if isHTMLRaw, ok := message.Contents["is_html"]; ok {
-				isHTML = isHTMLRaw.(bool)
+		case message := <-conn.In:
+			if message.Contents["type"].(string) == "IntroducerPresent" {
+				logrus.Debugf("IntroducerPresent message received")
+				if message.Contents["level"].(float64) > level {
+					logrus.Infof("deactivating, saw an introducer with level %0.2f, which is higher than my %0.2f", message.Contents["level"].(float64), level)
+					active = false
+				}
+			} else if message.Contents["type"].(string) == "IntroducerRollCall" {
+				logrus.Debugf("IntroducerRollCall message received")
+				sendPresent(conn.Out, level)
+			} else if message.Contents["type"].(string) == "Reconnected" {
+				active = true
+				logrus.Infof("checking if I should become active...")
+				sendRollCall(conn.Out)
+			} else if active {
+				if message.Contents["type"].(string) == "CopyData" {
+					copyToClipboard(message.Contents["data"].(string))
+					displayNotice("Remote copy complete.", false)
+
+					data := map[string]interface{}{
+						"type":   "DataCopied",
+						"origin": message.Contents["id"].(string),
+					}
+					conn.Out <- pmb.Message{Contents: data}
+				} else if message.Contents["type"].(string) == "OpenURL" {
+					var isHTML bool
+					if isHTMLRaw, ok := message.Contents["is_html"]; ok {
+						isHTML = isHTMLRaw.(bool)
+					} else {
+						isHTML = false
+					}
+
+					err := openURL(message.Contents["data"].(string), isHTML)
+					if err != nil {
+						displayNotice(fmt.Sprintf("Unable to open url: %v", err), false)
+						continue
+					}
+
+					displayNotice("URL opened.", false)
+
+					data := map[string]interface{}{
+						"type":   "URLOpened",
+						"origin": message.Contents["id"].(string),
+					}
+					conn.Out <- pmb.Message{Contents: data}
+				} else if message.Contents["type"].(string) == "TestAuth" {
+					data := map[string]interface{}{
+						"type":   "AuthValid",
+						"origin": message.Contents["id"].(string),
+					}
+					conn.Out <- pmb.Message{Contents: data}
+				} else if message.Contents["type"].(string) == "RequestAuth" {
+					// copy primary uri to clipboard
+					copyToClipboard(strings.Join(conn.Keys, ","))
+					displayNotice("Copied key.", false)
+				} else if message.Contents["type"].(string) == "Notification" {
+					level := message.Contents["level"].(float64)
+
+					displayNotice(message.Contents["message"].(string), level >= introducerCommand.LevelSticky)
+					ssRunning, _ := screensaverRunning()
+
+					data := map[string]interface{}{
+						"type":            "NotificationDisplayed",
+						"origin":          message.Contents["id"].(string),
+						"notification-id": message.Contents["notification-id"].(string),
+						"level":           level,
+						"message":         message.Contents["message"].(string),
+						"screenSaverOn":   ssRunning,
+					}
+					conn.Out <- pmb.Message{Contents: data}
+				}
+				// any other message type is an error and ignored
 			} else {
-				isHTML = false
+				logrus.Debugf("Skipped message due to being inactive")
 			}
-
-			err := openURL(message.Contents["data"].(string), isHTML)
-			if err != nil {
-				displayNotice(fmt.Sprintf("Unable to open url: %v", err), false)
-				continue
-			}
-
-			displayNotice("URL opened.", false)
-
-			data := map[string]interface{}{
-				"type":   "URLOpened",
-				"origin": message.Contents["id"].(string),
-			}
-			conn.Out <- pmb.Message{Contents: data}
-		} else if message.Contents["type"].(string) == "TestAuth" {
-			data := map[string]interface{}{
-				"type":   "AuthValid",
-				"origin": message.Contents["id"].(string),
-			}
-			conn.Out <- pmb.Message{Contents: data}
-		} else if message.Contents["type"].(string) == "RequestAuth" {
-			// copy primary uri to clipboard
-			copyToClipboard(strings.Join(conn.Keys, ","))
-			displayNotice("Copied key.", false)
-		} else if message.Contents["type"].(string) == "Notification" {
-			level := message.Contents["level"].(float64)
-
-			displayNotice(message.Contents["message"].(string), level >= introducerCommand.LevelSticky)
-			ssRunning, _ := screensaverRunning()
-
-			data := map[string]interface{}{
-				"type":            "NotificationDisplayed",
-				"origin":          message.Contents["id"].(string),
-				"notification-id": message.Contents["notification-id"].(string),
-				"level":           level,
-				"message":         message.Contents["message"].(string),
-				"screenSaverOn":   ssRunning,
-			}
-			conn.Out <- pmb.Message{Contents: data}
 		}
-		// any other message type is an error and ignored
 	}
-
 	return nil
 }
 
