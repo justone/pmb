@@ -114,7 +114,8 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, level float64) error {
 				sendPresent(conn.Out, level)
 			} else if message.Contents["type"].(string) == "Reconnected" {
 				active = true
-				logrus.Infof("checking if I should become active...")
+				logrus.Infof("checking if I should become active... (after reconnect)")
+				sendPresent(conn.Out, level)
 				sendRollCall(conn.Out)
 			} else if active {
 				if message.Contents["type"].(string) == "CopyData" {
