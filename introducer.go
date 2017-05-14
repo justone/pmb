@@ -104,11 +104,13 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, level float64) error {
 			}
 		case message := <-conn.In:
 			if message.Contents["type"].(string) == "IntroducerPresent" {
+				logrus.Debugf("IntroducerPresent message received")
 				if message.Contents["level"].(float64) > level {
 					logrus.Infof("deactivating, saw an introducer with level %0.2f, which is higher than my %0.2f", message.Contents["level"].(float64), level)
 					active = false
 				}
 			} else if message.Contents["type"].(string) == "IntroducerRollCall" {
+				logrus.Debugf("IntroducerRollCall message received")
 				sendPresent(conn.Out, level)
 			} else if message.Contents["type"].(string) == "Reconnected" {
 				active = true
@@ -172,8 +174,9 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, level float64) error {
 					conn.Out <- pmb.Message{Contents: data}
 				}
 				// any other message type is an error and ignored
+			} else {
+				logrus.Debugf("Skipped message due to being inactive")
 			}
-
 		}
 	}
 	return nil
