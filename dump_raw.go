@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
 )
 
 type DumpRawCommand struct {
-	Pretty bool `short:"p" long:"pretty" description:"Pretty print message contents."`
+	Pretty bool     `short:"p" long:"pretty" description:"Pretty print message contents."`
+	Ignore []string `short:"i" long:"ignore" description:"Message types to ignore."`
 }
 
 var dumpRawCommand DumpRawCommand
@@ -35,9 +37,19 @@ func init() {
 }
 
 func runDumpRaw(conn *pmb.Connection) error {
+	ignoreTypes := make(map[string]bool)
+
+	for _, ign := range dumpRawCommand.Ignore {
+		ignoreTypes[ign] = true
+	}
 
 	for {
 		message := <-conn.In
+
+		if _, ok := ignoreTypes[message.Contents["type"].(string)]; ok {
+			logrus.Debugf("ignoring message of type %s", message.Contents["type"].(string))
+			continue
+		}
 
 		if dumpRawCommand.Pretty {
 			var out bytes.Buffer
