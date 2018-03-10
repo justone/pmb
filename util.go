@@ -25,6 +25,8 @@ func copyToClipboard(data string) error {
 		cmd = exec.Command("tmux", "load-buffer", "-")
 	} else if _, err := exec.LookPath("clip"); err == nil {
 		cmd = exec.Command("clip")
+	} else if _, err := exec.LookPath("xclip"); err == nil {
+		cmd = exec.Command("xclip", "-selection", "c")
 	}
 	cmd.Stdin = strings.NewReader(data)
 
@@ -107,6 +109,16 @@ func displayNotice(message string, sticky bool) error {
 	} else if _, err := exec.LookPath("SnoreToast"); err == nil {
 		cmd = exec.Command("SnoreToast", "-t", "PMB", "-m", message)
 		logrus.Debugf("Using SnoreToast for notification.")
+	} else if _, err := exec.LookPath("notify-send"); err == nil {
+		cmdParts := []string{"notify-send", "pmb", message}
+		if sticky {
+			cmdParts = append(cmdParts, "-t", "60")
+		} else {
+			cmdParts = append(cmdParts, "-t", "3")
+		}
+
+		logrus.Debugf("Using notify-send for notification.")
+		cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
 	} else {
 		logrus.Warningf("Unable to display notice.")
 		return nil
