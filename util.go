@@ -21,12 +21,12 @@ func copyToClipboard(data string) error {
 	// TODO support more than OSX and tmux
 	if _, err := exec.LookPath("pbcopy"); err == nil {
 		cmd = exec.Command("pbcopy")
-	} else if _, err := exec.LookPath("tmux"); err == nil {
-		cmd = exec.Command("tmux", "load-buffer", "-")
 	} else if _, err := exec.LookPath("clip"); err == nil {
 		cmd = exec.Command("clip")
 	} else if _, err := exec.LookPath("xclip"); err == nil {
 		cmd = exec.Command("xclip", "-selection", "c")
+	} else if _, err := exec.LookPath("tmux"); err == nil {
+		cmd = exec.Command("tmux", "load-buffer", "-")
 	}
 	cmd.Stdin = strings.NewReader(data)
 
@@ -103,9 +103,6 @@ func displayNotice(message string, sticky bool) error {
 	} else if _, err := exec.LookPath("terminal-notifier"); err == nil {
 		cmd = exec.Command("terminal-notifier", "-message", message)
 		logrus.Debugf("Using terminal-notifier for notification.")
-	} else if _, err := exec.LookPath("tmux"); err == nil {
-		cmd = exec.Command("tmux", "display-message", message)
-		logrus.Debugf("Using tmux for notification.")
 	} else if _, err := exec.LookPath("SnoreToast"); err == nil {
 		cmd = exec.Command("SnoreToast", "-t", "PMB", "-m", message)
 		logrus.Debugf("Using SnoreToast for notification.")
@@ -117,8 +114,11 @@ func displayNotice(message string, sticky bool) error {
 			cmdParts = append(cmdParts, "-t", "3")
 		}
 
-		logrus.Debugf("Using notify-send for notification.")
+		logrus.Infof("Using notify-send for notification.")
 		cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
+	} else if _, err := exec.LookPath("tmux"); err == nil {
+		cmd = exec.Command("tmux", "display-message", message)
+		logrus.Debugf("Using tmux for notification.")
 	} else {
 		logrus.Warningf("Unable to display notice.")
 		return nil
