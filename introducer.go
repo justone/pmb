@@ -26,12 +26,27 @@ var introducerCommand IntroducerCommand
 func (x *IntroducerCommand) Execute(args []string) error {
 	if introducerCommand.PersistKey {
 		keyStore := fmt.Sprintf("%s/.pmb_key", os.Getenv("HOME"))
-		key, err := ioutil.ReadFile(keyStore)
-		if err != nil {
+
+		logrus.Debugf("persistent mode detected, fetching key")
+		if key, _ := pmb.GetCredHelperKey(); len(key) > 0 {
+			logrus.Debugf("found cred helper key, using that")
+			os.Setenv("PMB_KEY", key)
+		} else if key, err := ioutil.ReadFile(keyStore); err == nil {
+			logrus.Debugf("found old file key, using that")
+			if err = pmb.StoreCredHelperKey(string(key)); err == nil {
+				logrus.Debugf("migrated key to cred helper, deleting old key file")
+				os.Remove(keyStore)
+			}
+			os.Setenv("PMB_KEY", string(key))
+		} else {
+			logrus.Debugf("no key found anywhere, generating new")
 			key = []byte(pmb.GenerateRandomString(32))
-			ioutil.WriteFile(keyStore, key, 0600)
+			if err = pmb.StoreCredHelperKey(string(key)); err != nil {
+				logrus.Debugf("cred store failed, falling back to storing local file")
+				ioutil.WriteFile(keyStore, key, 0600)
+			}
+			os.Setenv("PMB_KEY", string(key))
 		}
-		os.Setenv("PMB_KEY", string(key))
 	} else {
 		os.Setenv("PMB_KEY", pmb.GenerateRandomString(32))
 	}

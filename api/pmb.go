@@ -59,6 +59,8 @@ func getConfig(primaryURI string) PMBConfig {
 
 	if key := os.Getenv("PMB_KEY"); len(key) > 0 {
 		config["key"] = key
+	} else if key, _ := GetCredHelperKey(); len(key) > 0 {
+		config["key"] = key
 	} else {
 		config["key"] = ""
 	}
@@ -244,6 +246,9 @@ func connectWithKey(URI string, id string, sub string, key string, isIntroducer 
 			if err != nil {
 				logrus.Warningf("Error with key: %s", err)
 			} else {
+				if StoreCredHelperKey(inkeys) != nil {
+					logrus.Debugf("unable to store with cred helpers")
+				}
 				break
 			}
 		}
