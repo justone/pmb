@@ -21,6 +21,18 @@
 			"revisionTime": "2015-01-14T23:56:00Z"
 		},
 		{
+			"checksumSHA1": "zcDmNPSzI1wVokOiHis5+JSg2Rk=",
+			"path": "github.com/docker/docker-credential-helpers/client",
+			"revision": "19b711cc92fbaa47533646fa8adb457d199c99e1",
+			"revisionTime": "2018-02-14T07:13:21Z"
+		},
+		{
+			"checksumSHA1": "4u6EMQqD1zIqOHp76zQFLVH5V8U=",
+			"path": "github.com/docker/docker-credential-helpers/credentials",
+			"revision": "19b711cc92fbaa47533646fa8adb457d199c99e1",
+			"revisionTime": "2018-02-14T07:13:21Z"
+		},
+		{
 			"checksumSHA1": "CkdD7GzkZHkaRDTv/osXUcoYQzA=",
 			"path": "github.com/go-martini/martini",
 			"revision": "e038957346d959db124df28ebf5c0adb7e7866bf",
@@ -67,6 +79,12 @@
 			"path": "github.com/jessevdk/go-flags",
 			"revision": "8ec9564882e7923e632f012761c81c46dcf5bec1",
 			"revisionTime": "2014-05-27T08:36:15Z"
+		},
+		{
+			"checksumSHA1": "HWs193sOgLXaBk/qibGT/COWWcU=",
+			"path": "github.com/justone/crocker",
+			"revision": "f759222b1e1d9793d0560f5f9fbf5b9b2dcbafb4",
+			"revisionTime": "2017-04-24T04:34:09Z"
 		},
 		{
 			"checksumSHA1": "cE/ekL4yJWSDx7WLbVlE9Sx9fUo=",
