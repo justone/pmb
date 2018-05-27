@@ -45,3 +45,22 @@ func StoreCredHelperKey(keys string) error {
 	logrus.Debugf("stored cred helper creds", creds)
 	return nil
 }
+
+// ClearCredHelperKey tries to clear the key using the docker-credential-* set
+// of utilities, as discovered by crocker (https://github.com/justone/crocker).
+func ClearCredHelperKey() error {
+	cr, err := crocker.NewWithStrategy(crocker.MemThenStockStrategy{})
+
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("found cred helper instance", cr)
+	err = cr.Erase(url)
+	if err != nil {
+		return err
+	}
+
+	logrus.Debugf("cleared cred helper creds")
+	return nil
+}

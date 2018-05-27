@@ -75,10 +75,10 @@
 			"revisionTime": "2016-04-28T00:30:50Z"
 		},
 		{
-			"checksumSHA1": "3au6K9/82actBPF9ivbFkEc1dvo=",
+			"checksumSHA1": "OH94abBdbmoVqyRqYBfgUT9N494=",
 			"path": "github.com/jessevdk/go-flags",
-			"revision": "8ec9564882e7923e632f012761c81c46dcf5bec1",
-			"revisionTime": "2014-05-27T08:36:15Z"
+			"revision": "1c38ed7ad0cc3d9e66649ac398c30e45f395c4eb",
+			"revisionTime": "2018-03-31T12:42:32Z"
 		},
 		{
 			"checksumSHA1": "HWs193sOgLXaBk/qibGT/COWWcU=",

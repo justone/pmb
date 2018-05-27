@@ -119,6 +119,10 @@ func (pmb *PMB) CopyKey(id string) (*Connection, error) {
 	return nil, errors.New("No URI found, use '-p' to specify one")
 }
 
+func (pmb *PMB) GetConfigKey() string {
+	return pmb.config["key"]
+}
+
 var charactersForRandom = []byte("1234567890abcdefghijklmnopqrstuvwxyz")
 
 var randSeeded = false
