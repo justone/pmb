@@ -174,8 +174,8 @@ func SendNotification(conn *Connection, note Notification) error {
 }
 
 func connect(URI string, id string, sub string) (*Connection, error) {
-	if strings.HasPrefix(URI, "http") {
-		return connectHTTP(URI, id, sub)
+	if strings.HasPrefix(URI, "ws") {
+		return connectWS(URI, id, sub)
 	} else if strings.HasPrefix(URI, "amqp") {
 		return connectAMQP(URI, id, sub)
 	}

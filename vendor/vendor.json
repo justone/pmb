@@ -33,10 +33,16 @@
 			"revisionTime": "2018-02-14T07:13:21Z"
 		},
 		{
-			"checksumSHA1": "CkdD7GzkZHkaRDTv/osXUcoYQzA=",
-			"path": "github.com/go-martini/martini",
-			"revision": "e038957346d959db124df28ebf5c0adb7e7866bf",
-			"revisionTime": "2015-05-29T07:30:14Z"
+			"checksumSHA1": "Ld1fkCBbtUqRg3qu1gZKpP2OyO4=",
+			"path": "github.com/gorilla/mux",
+			"revision": "9e1f5955c0d22b55d9e20d6faa28589f83b2faca",
+			"revisionTime": "2018-09-03T15:43:05Z"
+		},
+		{
+			"checksumSHA1": "VKx/YhlIAbIJ9dXAxCCHOkjom4U=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d",
+			"revisionTime": "2018-08-25T15:15:06Z"
 		},
 		{
 			"checksumSHA1": "K6exl2ouL7d8cR2i378EzZOdRVI=",
@@ -85,12 +91,6 @@
 			"path": "github.com/justone/crocker",
 			"revision": "f759222b1e1d9793d0560f5f9fbf5b9b2dcbafb4",
 			"revisionTime": "2017-04-24T04:34:09Z"
-		},
-		{
-			"checksumSHA1": "cE/ekL4yJWSDx7WLbVlE9Sx9fUo=",
-			"path": "github.com/justone/go-minibus",
-			"revision": "c7d995bca43dacf59353a298b013979434298e8b",
-			"revisionTime": "2014-11-01T03:53:53Z"
 		},
 		{
 			"checksumSHA1": "fq867CzsSFnrAb9OMi5g3Xa6Igs=",
