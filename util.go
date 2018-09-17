@@ -104,7 +104,7 @@ func displayNotice(message string, sticky bool) error {
 		cmd = exec.Command("terminal-notifier", "-message", message)
 		logrus.Debugf("Using terminal-notifier for notification.")
 	} else if _, err := exec.LookPath("SnoreToast"); err == nil {
-		cmd = exec.Command("SnoreToast", "-t", "PMB", "-m", message)
+		cmd = exec.Command("SnoreToast", "-silent", "-t", "PMB", "-m", message)
 		logrus.Debugf("Using SnoreToast for notification.")
 	} else if _, err := exec.LookPath("notify-send"); err == nil {
 		cmdParts := []string{"notify-send", "pmb", message}
