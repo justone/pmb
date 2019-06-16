@@ -1,0 +1,9 @@
+package pmb
+
+import "strings"
+
+var broadcastPublicKey = "MIIBCgKCAQEAzCNUtx1M1W7ucYZMmIaG2-ZEMoHEdPhbFq6tNy8CEl61cx8FJAX-7PmKEuh7VrHM6pCU-ptqD_jvYDR0sYcKtcKN0EY8QmfNq34UJmiAiMIKyDaAFHudJBaP--xc1i0hDfN-Rq-vY2FehYgRyG7iH4YIb9_1EsbAbC6cvrGbZO2h2txPRLZU7i1OlC9QMBfzHZRN_n6nORZrDgcbflTGPeMGbtDHtMELeT8HZ9AKYPFknp9yUHxKgOaENqKwxwqzJEpLrPKdaUY9CAIIExkrq263mIqGoEzNm8UM3XCieAGEFKzTm1tXrU3xxDK3i302w9_qcmCx3OrONQyoD-dKUwIDAQAB"
+
+func decryptBroadcast(text string) (string, error) {
+	return strings.TrimPrefix(text, "broadcast-"), nil
+}

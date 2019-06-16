@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -122,7 +123,27 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 	var message []byte
 	var rawData interface{}
 	messageWasEncrypted := false
-	if body[0] != '{' {
+	messageWasBroadcast := false
+	if strings.HasPrefix(string(body), "broadcast-") {
+		decrypted, err := decryptBroadcast(string(body))
+		if err != nil {
+			logrus.Warningf("unable to decrypt broadcast: %v", err)
+			return
+		}
+
+		var rd interface{}
+		err = json.Unmarshal([]byte(decrypted), &rd)
+		if err != nil {
+			return
+		}
+
+		messageWasEncrypted = true
+		messageWasBroadcast = true
+		logrus.Debugf("Successfully decrypted broadcast")
+
+		message = []byte(decrypted)
+		rawData = rd
+	} else if body[0] != '{' {
 		logrus.Debugf("Decrypting message...")
 		if len(keys) > 0 {
 			logrus.Debugf("Attemping to decrypt with %d keys...", len(keys))
@@ -130,7 +151,7 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 			for _, key := range keys {
 				decrypted, err := decrypt([]byte(key), string(body))
 				if err != nil {
-					logrus.Warningf("Unable to decrypt message!")
+					logrus.Warningf("Unable to decrypt message: %s", err)
 					continue
 				}
 
@@ -178,6 +199,12 @@ func parseMessage(body []byte, keys []string, ch chan Message, id string) {
 	// only RequestAuth messages are allowed to be unencrypted
 	if !messageWasEncrypted && data["type"].(string) != "RequestAuth" {
 		logrus.Warningf("Unencrypted message that wasn't RequestAuth detected, discarding...")
+		return
+	}
+
+	// only Notification messages are allowed from the broadcast
+	if messageWasBroadcast && data["type"].(string) != "Notification" {
+		logrus.Warningf("Broadcast message that wasn't Notification detected, discarding...")
 		return
 	}
 
