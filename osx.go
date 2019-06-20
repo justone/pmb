@@ -39,10 +39,10 @@ func handleOSXCommand(bus *pmb.PMB, command string, subcommand string, arguments
 	}
 
 	launchData := struct {
-		Name, Executable, Primary, HomeDir string
-		Args                               []string
+		Name, Executable, Broker, HomeDir string
+		Args                              []string
 	}{
-		agentName, executable, bus.PrimaryURI(), homeDir, arguments,
+		agentName, executable, bus.BrokerURI(), homeDir, arguments,
 	}
 
 	switch command {
@@ -183,7 +183,7 @@ func generateLaunchConfig(launchData interface{}) string {
 			<key>PATH</key>
 			<string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
 			<key>PMB_PRIMARY_URI</key>
-			<string>{{ .Primary }}</string>
+			<string>{{ .Broker }}</string>
 		</dict>
 		<key>StandardOutPath</key>
 		<string>{{ .HomeDir }}/.pmb.log</string>

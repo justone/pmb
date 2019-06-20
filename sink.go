@@ -13,7 +13,7 @@ type SinkCommand struct {
 var sinkCommand SinkCommand
 
 func (x *SinkCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	id := pmb.GenerateRandomID("sink")
 

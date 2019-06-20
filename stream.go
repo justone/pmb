@@ -18,7 +18,7 @@ type StreamCommand struct {
 var streamCommand StreamCommand
 
 func (x *StreamCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	if _, err := os.Stat(streamCommand.File); os.IsNotExist(err) {
 		return fmt.Errorf("File %s not found.", streamCommand.File)

@@ -18,7 +18,7 @@ type RemoteCopyCommand struct {
 var remoteCopyCommand RemoteCopyCommand
 
 func (x *RemoteCopyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	// grab all args or stdin
 	var data string

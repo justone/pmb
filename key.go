@@ -36,7 +36,7 @@ type KeyCommand struct {
 }
 
 func (x *GetKeyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	if x.LocalCheck {
 		if key, _ := pmb.GetCredHelperKey(); len(key) > 0 {
@@ -108,7 +108,7 @@ func (x *CheckKeyCommand) Execute(args []string) error {
 	}
 
 	os.Setenv("PMB_KEY", key)
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	id := pmb.GenerateRandomID("checkKey")
 	_, err = bus.ConnectClient(id, !globalOptions.TrustKey)
@@ -120,7 +120,7 @@ func (x *CheckKeyCommand) Execute(args []string) error {
 }
 
 func (x *CopyKeyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	id := pmb.GenerateRandomID("copyKey")
 

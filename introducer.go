@@ -52,7 +52,7 @@ func (x *IntroducerCommand) Execute(args []string) error {
 	}
 
 	logrus.Debugf("calling GetPMB")
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	var name string
 	if len(introducerCommand.Name) > 0 {
@@ -170,7 +170,6 @@ func runIntroducer(bus *pmb.PMB, conn *pmb.Connection, level float64) error {
 					}
 					conn.Out <- pmb.Message{Contents: data}
 				} else if message.Contents["type"].(string) == "RequestAuth" {
-					// copy primary uri to clipboard
 					copyToClipboard(strings.Join(conn.Keys, ","))
 					displayNotice("Copied key.", false)
 				} else if message.Contents["type"].(string) == "Notification" {

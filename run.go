@@ -22,7 +22,7 @@ type RunCommand struct {
 var runCommand RunCommand
 
 func (x *RunCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	if len(args) == 0 {
 		return fmt.Errorf("A command is required")

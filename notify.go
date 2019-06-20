@@ -14,7 +14,7 @@ type NotifyCommand struct {
 var notifyCommand NotifyCommand
 
 func (x *NotifyCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	if len(notifyCommand.Message) == 0 {
 		return fmt.Errorf("A message is required")

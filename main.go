@@ -12,7 +12,7 @@ import (
 type GlobalOptions struct {
 	Quiet     func() `short:"q" long:"quiet" description:"Show as little information as possible."`
 	Verbose   func() `short:"v" long:"verbose" description:"Show verbose debug information."`
-	Primary   string `short:"p" long:"primary" description:"Primary URI."`
+	Broker    string `short:"b" long:"broker" description:"Broker URI."`
 	TrustKey  bool   `short:"t" long:"trust-key" description:"Don't verify the provided key, just send messages blind."`
 	LogJSON   func() `short:"j" long:"log-json" description:"Log in JSON format."`
 	LogSyslog func() `short:"s" long:"log-syslog" description:"Log to syslog."`

@@ -18,7 +18,7 @@ type OpenURLCommand struct {
 var openURLCommand OpenURLCommand
 
 func (x *OpenURLCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	// grab all args or stdin
 	var data string

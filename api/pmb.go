@@ -42,19 +42,30 @@ type Notification struct {
 	Level   float64
 }
 
-func GetPMB(primaryURI string) *PMB {
-	config := getConfig(primaryURI)
+func GetPMB(brokerURI string) *PMB {
+	config := getConfig(brokerURI)
 
 	return &PMB{config: config}
 }
 
-func getConfig(primaryURI string) PMBConfig {
+func getConfig(brokerURI string) PMBConfig {
 	config := make(PMBConfig)
 
-	if len(primaryURI) > 0 {
-		config["primary"] = primaryURI
-	} else if primaryURI := os.Getenv("PMB_PRIMARY_URI"); len(primaryURI) > 0 {
-		config["primary"] = primaryURI
+	conf, err := NewDefaultConfigClient()
+	var confBrokerURI string
+	if err == nil {
+		confBrokerURI, _ = conf.Get("broker.uri")
+	}
+
+	if len(brokerURI) > 0 {
+		logrus.Debugf("Broker URI retrieved from argument")
+		config["broker"] = brokerURI
+	} else if brokerURI := os.Getenv("PMB_BROKER_URI"); len(brokerURI) > 0 {
+		logrus.Debugf("Broker URI retrieved from ENV")
+		config["broker"] = brokerURI
+	} else if len(confBrokerURI) > 0 {
+		logrus.Debugf("Broker URI retrieved from config")
+		config["broker"] = confBrokerURI
 	}
 
 	if key := os.Getenv("PMB_KEY"); len(key) > 0 {
@@ -71,9 +82,9 @@ func getConfig(primaryURI string) PMBConfig {
 
 func (pmb *PMB) ConnectIntroducer(id string) (*Connection, error) {
 
-	if len(pmb.config["primary"]) > 0 {
+	if len(pmb.config["broker"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], true, true)
+		return connectWithKey(pmb.config["broker"], id, "", pmb.config["key"], true, true)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -81,9 +92,9 @@ func (pmb *PMB) ConnectIntroducer(id string) (*Connection, error) {
 
 func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
 
-	if len(pmb.config["primary"]) > 0 {
+	if len(pmb.config["broker"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], false, checkKey)
+		return connectWithKey(pmb.config["broker"], id, "", pmb.config["key"], false, checkKey)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -91,9 +102,9 @@ func (pmb *PMB) ConnectClient(id string, checkKey bool) (*Connection, error) {
 
 func (pmb *PMB) ConnectSubClient(conn *Connection, sub string) (*Connection, error) {
 
-	if len(pmb.config["primary"]) > 0 {
+	if len(pmb.config["broker"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], conn.Id, sub, strings.Join(conn.Keys, ","), false, false)
+		return connectWithKey(pmb.config["broker"], conn.Id, sub, strings.Join(conn.Keys, ","), false, false)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -102,9 +113,9 @@ func (pmb *PMB) ConnectSubClient(conn *Connection, sub string) (*Connection, err
 // Deprecated
 func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error) {
 
-	if len(pmb.config["primary"]) > 0 {
+	if len(pmb.config["broker"]) > 0 {
 		logrus.Debugf("calling connectWithKey")
-		return connectWithKey(pmb.config["primary"], id, "", pmb.config["key"], isIntroducer, true)
+		return connectWithKey(pmb.config["broker"], id, "", pmb.config["key"], isIntroducer, true)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -112,8 +123,8 @@ func (pmb *PMB) GetConnection(id string, isIntroducer bool) (*Connection, error)
 
 func (pmb *PMB) CopyKey(id string) (*Connection, error) {
 
-	if len(pmb.config["primary"]) > 0 {
-		return copyKey(pmb.config["primary"], id)
+	if len(pmb.config["broker"]) > 0 {
+		return copyKey(pmb.config["broker"], id)
 	}
 
 	return nil, errors.New("No URI found, use '-p' to specify one")
@@ -334,6 +345,6 @@ func requestKey(conn *Connection) (string, error) {
 	return string(key), nil
 }
 
-func (pmb *PMB) PrimaryURI() string {
-	return pmb.config["primary"]
+func (pmb *PMB) BrokerURI() string {
+	return pmb.config["broker"]
 }

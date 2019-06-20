@@ -21,7 +21,7 @@ type WatchCommand struct {
 var watchCommand WatchCommand
 
 func (x *WatchCommand) Execute(args []string) error {
-	bus := pmb.GetPMB(globalOptions.Primary)
+	bus := pmb.GetPMB(globalOptions.Broker)
 
 	if len(watchCommand.Message) == 0 && watchCommand.Pid == 0 && watchCommand.File == "" {
 		return fmt.Errorf("A message or pid or file is required")

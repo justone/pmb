@@ -135,6 +135,12 @@
 			"revisionTime": "2016-04-28T00:30:50Z"
 		},
 		{
+			"checksumSHA1": "s4yxtZss88Rf9psrJz9S1EAy6vI=",
+			"path": "gopkg.in/ini.v1",
+			"revision": "c85607071cf08ca1adaf48319cd1aa322e81d8c1",
+			"revisionTime": "2019-02-17T19:36:56Z"
+		},
+		{
 			"checksumSHA1": "TO8baX+t1Qs7EmOYth80MkbKzFo=",
 			"origin": "github.com/hpcloud/tail/vendor/gopkg.in/tomb.v1",
 			"path": "gopkg.in/tomb.v1",
