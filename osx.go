@@ -182,7 +182,7 @@ func generateLaunchConfig(launchData interface{}) string {
 		<dict>
 			<key>PATH</key>
 			<string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string>
-			<key>PMB_PRIMARY_URI</key>
+			<key>PMB_BROKER_URI</key>
 			<string>{{ .Broker }}</string>
 		</dict>
 		<key>StandardOutPath</key>
