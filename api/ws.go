@@ -7,6 +7,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 256 * 1024
+)
+
 func connectWS(URI string, id string, sub string) (*Connection, error) {
 
 	in := make(chan Message, 10)
@@ -78,6 +85,14 @@ func connectSocket(uri string) (*websocket.Conn, error) {
 		return nil, err
 	}
 
+	c.SetReadLimit(maxMessageSize)
+	c.SetReadDeadline(time.Now().Add(pongWait))
+	c.SetPongHandler(func(string) error {
+		logrus.Debugf("received pong")
+		c.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	return c, err
 }
 
@@ -106,6 +121,11 @@ func processSocket(pmbConn *Connection, conn *websocket.Conn, id string) {
 
 	// Set up writer side of socket
 	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer func() {
+			ticker.Stop()
+			conn.Close()
+		}()
 		for {
 			select {
 			case <-done:
@@ -119,6 +139,7 @@ func processSocket(pmbConn *Connection, conn *websocket.Conn, id string) {
 				}
 
 				for _, body := range bodies {
+					conn.SetWriteDeadline(time.Now().Add(writeWait))
 					err = conn.WriteMessage(websocket.TextMessage, body)
 					if err != nil {
 						logrus.Errorf("error writing:", err)
@@ -129,6 +150,12 @@ func processSocket(pmbConn *Connection, conn *websocket.Conn, id string) {
 				if message.Done != nil {
 					logrus.Debugf("Done channel present, sending message")
 					message.Done <- nil
+				}
+			case <-ticker.C:
+				conn.SetWriteDeadline(time.Now().Add(writeWait))
+				logrus.Debugf("sending ping")
+				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
 				}
 			}
 		}
