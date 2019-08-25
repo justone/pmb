@@ -125,6 +125,11 @@ func processSocket(pmbConn *Connection, conn *websocket.Conn, id string) {
 						return
 					}
 				}
+
+				if message.Done != nil {
+					logrus.Debugf("Done channel present, sending message")
+					message.Done <- nil
+				}
 			}
 		}
 	}()
