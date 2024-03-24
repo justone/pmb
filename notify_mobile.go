@@ -7,7 +7,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/justone/pmb/api"
-	"github.com/thorduri/pushover"
+	"github.com/gregdel/pushover"
 )
 
 type NotifyMobileCommand struct {
@@ -112,6 +112,8 @@ func runNotifyMobile(conn *pmb.Connection, id string, token string, userKey stri
 
 	logrus.Debugf("always: %f, unacknowledged: %f, unseen: %f\n", notifyMobileCommand.LevelAlways, notifyMobileCommand.LevelUnacknowledged, notifyMobileCommand.LevelUnseen)
 
+	logrus.Infof("starting mobile notifiation.")
+
 	pushoverChan := make(chan pmb.Message)
 	go pushoverAgent(pushoverChan, token, userKey)
 
@@ -161,10 +163,9 @@ func pushoverAgent(in chan pmb.Message, token string, userKey string) {
 
 	recentIds := make([]string, 0)
 
-	po, err := pushover.NewPushover(token, userKey)
-	if err != nil {
-		logrus.Warnf("Error creating new Pushover instance: %s", err)
-	}
+	po := pushover.New(token)
+
+	recipient := pushover.NewRecipient(userKey)
 
 MESSAGE:
 	for {
@@ -186,7 +187,9 @@ MESSAGE:
 			recentIds = recentIds[1:]
 		}
 
-		err = po.Message(messageText)
+		poMessage := pushover.NewMessage(messageText)
+
+		_, err := po.SendMessage(poMessage, recipient)
 		if err != nil {
 			logrus.Warnf("Error sending Pushover notification: %s", err)
 		}
